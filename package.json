@@ -5,6 +5,7 @@
   "description": "赵管家与黄少爷的专属小宇宙",
   "scripts": {
     "check": "node scripts/verify.cjs",
+    "check:trash": "node scripts/check-album-trash.cjs",
     "gift": "node scripts/build-gift.cjs",
     "check:cloud": "python scripts/cloud-access-check.py"
   }

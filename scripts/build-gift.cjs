@@ -13,6 +13,8 @@ vm.runInNewContext(config, context);
 const base = context.window.UNIVERSE_CONFIG;
 const settings = Object.fromEntries(['me','her','startDate','startTime','promise','letter'].map(key => [key, base[key]]));
 const source = { html: read('index.html'), css: read('styles.css').replace(/url\(['"]?(assets\/universe-hero\.webp)['"]?\)/, () => `url('${dataUrl('assets/universe-hero.webp')}')`), config, core: read('time.js'), application: read('app.js') };
+source.css += '\n' + read('album.css');
+source.html = source.html.replace('<link rel="stylesheet" href="album.css">','');
 source.html=source.html.replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'');
 const bootstrap = { settings, photos: base.photos.map(photo => ({ ...photo, src: dataUrl(photo.src) })) };
 let html = source.html;

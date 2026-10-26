@@ -1,0 +1,28 @@
+.album-tools{display:flex;align-items:center;gap:22px;flex-shrink:0}
+.album-tools [hidden],.lightbox-actions [hidden],.trash-load-more[hidden]{display:none}
+.lightbox-actions{display:flex;justify-content:flex-end;padding:2px 0 5px}
+.lightbox-actions button{border:1px solid #bda09066;border-radius:4px;background:#ffffff08;color:#e5beb0;padding:10px 17px;font-size:12px;transition:background .2s}
+.lightbox-actions button:hover{background:#edb5a722}
+.album-dialog-body{padding:30px}
+.album-dialog-note{color:#8d806e;font-size:12px;line-height:1.9;margin:14px 0 22px}
+.delete-photo-name{color:#786650;font-family:var(--serif);font-size:18px;line-height:1.7;overflow-wrap:anywhere}
+.album-dialog-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}
+.album-dialog-actions button,.trash-restore,.trash-load-more{border:1px solid #c5b9a4;border-radius:4px;padding:11px 17px;font-size:12px}
+.album-cancel{background:transparent;color:#88765e}
+.album-danger{background:#ae796b;border-color:#ae796b!important;color:#fff9f3}
+.album-error{font-size:12px;line-height:1.8;color:#ad6758;margin:14px 0 0}
+.album-error:empty{display:none}
+.album-dialog-actions button:disabled,.trash-restore:disabled{opacity:.55;cursor:wait}
+.trash-dialog{width:min(640px,calc(100% - 32px));max-height:88dvh;overflow:auto}
+.trash-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:40px;color:#92836c;font-size:11px}
+.trash-toolbar button{border:0;background:transparent;color:#9b8067;white-space:nowrap;padding:9px 0;font-size:12px}
+.trash-photo-list{list-style:none;margin:4px 0 0;padding:0}
+.trash-photo{display:flex;align-items:center;gap:16px;padding:18px 0;border-top:1px solid #c9bda641}
+.trash-photo img{width:76px;height:76px;object-fit:cover;border-radius:3px;flex-shrink:0}
+.trash-photo-info{flex:1;min-width:0}
+.trash-photo-info h3{font-family:var(--serif);font-weight:400;font-size:16px;color:#796a55;line-height:1.6;overflow-wrap:anywhere}
+.trash-photo-info p{font-size:10px;line-height:1.8;color:#a0917a;margin-top:5px}
+.trash-restore{flex-shrink:0;background:#e4e7d6;color:#727a59;border-color:#cbd0b8;padding:10px 12px}
+.trash-empty{padding:38px 0;text-align:center;color:#a3937c;font-family:var(--serif);font-size:14px;line-height:1.9}
+.trash-load-more{display:block;margin:18px auto 0;background:transparent;color:#8a765e}
+@media(max-width:600px){.cloud-status{align-items:flex-start;flex-direction:column;gap:5px}.album-tools{gap:22px}.album-dialog-body{padding:23px}.album-dialog-note{font-size:11px}.trash-photo{gap:11px;flex-wrap:wrap}.trash-photo img{width:60px;height:60px}.trash-photo-info h3{font-size:14px}.trash-restore{font-size:11px;padding:9px 10px}.lightbox-actions button{font-size:11px;padding:9px 13px}}

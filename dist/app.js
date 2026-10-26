@@ -38,6 +38,8 @@
   let databasePromise;
   let cloudGeneration = 0;
   let syncInFlight = null;
+  let pendingDelete = null, photoMutation = false;
+  let trashPhotos = [], trashRequest = 0, trashHasMore = false;
 
   function toast(text) {
     const el = $('#toast');
@@ -163,6 +165,7 @@
     $('#lightbox-image').alt = photo.title;
     $('#lightbox-caption').textContent = `${photo.title}${photo.demo ? '\n氛围示例 · 等待我们的真实照片' : photo.date ? `\n${dotted(photo.date)}` : ''}`;
     $('#lightbox-counter').textContent = `${lightboxIndex + 1} / ${filteredPhotos.length}`;
+    $('#delete-lightbox-photo').hidden = !(cloudMode && cloud.state().authorized && photo.canManage && !photo.demo);
   }
   function shiftPhoto(step) { lightboxIndex = (lightboxIndex + step + filteredPhotos.length) % filteredPhotos.length; renderLightbox(); }
   $('#photo-prev').addEventListener('click', () => shiftPhoto(-1));
@@ -171,6 +174,89 @@
   let touchStart;
   $('#lightbox-image').addEventListener('touchstart', e => { touchStart = e.touches[0].clientX; }, { passive: true });
   $('#lightbox-image').addEventListener('touchend', e => { if (touchStart == null) return; const delta = e.changedTouches[0].clientX - touchStart; if (Math.abs(delta) > 50) shiftPhoto(delta > 0 ? -1 : 1); touchStart = null; }, { passive: true });
+  $('#delete-lightbox-photo').addEventListener('click', () => {
+    const photo=filteredPhotos[lightboxIndex];
+    if (photoMutation || !cloudMode || !cloud.state().authorized || !photo?.canManage || photo.demo) return;
+    pendingDelete={id:photo.id,title:photo.title};
+    $('#delete-photo-title').textContent=photo.title;
+    $('#delete-photo-feedback').textContent='';
+    openDialog('#photo-delete-dialog');
+  });
+  $('#photo-delete-dialog').addEventListener('close', () => { pendingDelete=null; });
+  $('#confirm-delete-photo').addEventListener('click',async () => {
+    if (!pendingDelete || photoMutation) return;
+    const photo=pendingDelete, button=$('#confirm-delete-photo');
+    photoMutation=true; button.disabled=true; button.textContent='正在移入回收站……';
+    let moved=false;
+    try {
+      await cloud.movePhotoToTrash(photo.id);
+      moved=true; cloudGeneration++;
+      $('#photo-delete-dialog').close(); $('#lightbox').close();
+      photos=photos.filter(item=>item.id!==photo.id); renderPhotos();
+      await syncCloudAlbum();
+      toast('已移入回收站。想找回时，点照片墙旁的「回收站」即可。');
+    } catch(err) {
+      const message=moved ? '照片已移入回收站；相册刷新暂未完成，请稍后刷新。' : err.message;
+      if($('#photo-delete-dialog').open) $('#delete-photo-feedback').textContent=message; else toast(message);
+    }
+    finally { photoMutation=false; button.disabled=false; button.textContent='移入回收站'; if($('#photo-trash-dialog').open) renderTrash(); }
+  });
+  function renderTrash() {
+    const list=$('#trash-photo-list'); list.replaceChildren();
+    if (!trashPhotos.length) list.append(node('p','trash-empty','回收站空空的，美好都被好好收藏着 ♡'));
+    for (const photo of trashPhotos) {
+      const item=node('li','trash-photo');
+      const image=node('img'); image.src=photo.src; image.alt=photo.title; image.loading='lazy'; image.width=76; image.height=76;
+      const info=node('div','trash-photo-info');
+      info.append(node('h3','',photo.title),node('p','',`移入时间 · ${new Date(photo.deletedAt).toLocaleDateString('zh-CN',{timeZone:'Asia/Shanghai'})}`));
+      const button=node('button','trash-restore','恢复照片'); button.type='button'; button.disabled=photoMutation;
+      button.setAttribute('aria-label',`恢复照片：${photo.title}`);
+      button.addEventListener('click',() => restoreTrashedPhoto(photo.id,button));
+      item.append(image,info,button); list.append(item);
+    }
+    $('#trash-load-more').hidden=!trashHasMore;
+  }
+  async function refreshTrash(append = false) {
+    if (!cloudMode || !cloud.state().authorized) return;
+    const request=++trashRequest, generation=cloudGeneration;
+    $('#trash-feedback').textContent='正在整理回收站……';
+    $('#refresh-trash').disabled=true; $('#trash-load-more').disabled=true;
+    try {
+      const next=await cloud.listTrashedPhotos(append ? trashPhotos.length : 0);
+      if (request!==trashRequest || generation!==cloudGeneration || !cloud.state().authorized || !$('#photo-trash-dialog').open) return;
+      trashPhotos=append ? [...trashPhotos,...next.filter(photo=>!trashPhotos.some(old=>old.id===photo.id))] : next;
+      trashHasMore=next.length===30;
+      renderTrash(); $('#trash-feedback').textContent=trashPhotos.length ? `已显示 ${trashPhotos.length} 张 · 可恢复到共享照片墙` : '';
+    } catch(err) { if(request===trashRequest) $('#trash-feedback').textContent=err.message; }
+    finally { if(request===trashRequest) { $('#refresh-trash').disabled=false; $('#trash-load-more').disabled=false; } }
+  }
+  async function restoreTrashedPhoto(id,button) {
+    if (photoMutation || !cloudMode || !cloud.state().authorized) return;
+    photoMutation=true; button.disabled=true; button.textContent='正在恢复……';
+    let restored=false;
+    try {
+      await syncCloudAlbum(true);
+      if (photos.filter(photo=>!photo.demo).length>=60) throw new Error('照片墙已收藏 60 张，请先移出一张，再恢复这张照片。');
+      await cloud.restorePhoto(id);
+      restored=true; cloudGeneration++; trashRequest++;
+      trashPhotos=trashPhotos.filter(photo=>photo.id!==id); renderTrash();
+      await syncCloudAlbum(true);
+      await refreshTrash();
+      toast('照片已回到我们的共享照片墙。♡');
+    } catch(err) {
+      const message=restored ? '照片已恢复；相册刷新暂未完成，请稍后刷新。' : err.message;
+      if($('#photo-trash-dialog').open) $('#trash-feedback').textContent=message; else toast(message);
+    }
+    finally { photoMutation=false; if($('#photo-trash-dialog').open) renderTrash(); }
+  }
+  $('#open-trash').addEventListener('click',() => {
+    if (!cloudMode || !cloud.state().authorized) return;
+    trashPhotos=[]; trashHasMore=false; $('#trash-photo-list').replaceChildren();
+    openDialog('#photo-trash-dialog'); refreshTrash();
+  });
+  $('#refresh-trash').addEventListener('click',() => refreshTrash());
+  $('#trash-load-more').addEventListener('click',() => refreshTrash(true));
+  $('#photo-trash-dialog').addEventListener('close',() => { trashRequest++; trashPhotos=[]; $('#trash-photo-list').replaceChildren(); $('#trash-feedback').textContent=''; });
   function database() {
     if (!databasePromise) databasePromise = new Promise((resolve, reject) => {
       const request = indexedDB.open('our-little-universe-v1', 1);
@@ -290,7 +376,7 @@
         const next=await cloud.listPhotos();
         if (generation!==cloudGeneration || !cloud.state().authorized) return;
         const viewed=filteredPhotos[lightboxIndex]?.id;
-        photos=next.length ? next : base.photos;
+        photos=next;
         renderPhotos();
         if ($('#lightbox').open) {
           lightboxIndex=filteredPhotos.findIndex(photo=>photo.id===viewed);
@@ -313,12 +399,17 @@
     $('#cloud-account').hidden=false;
     $('#cloud-status').hidden=false;
     $('#sync-album').disabled=!state.authorized;
+    $('#open-trash').hidden=!state.authorized;
     $('#cloud-account').textContent=state.authorized ? '共享相册 ♡' : '登录相册';
     if (!state.authorized) {
       photos=base.photos;
       renderPhotos();
       if ($('#lightbox').open) $('#lightbox').close();
       if ($('#upload-dialog').open) $('#upload-dialog').close();
+      for (const id of ['photo-trash-dialog','photo-delete-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();
+      pendingDelete=null; trashRequest++; trashPhotos=[]; $('#trash-photo-list').replaceChildren();
+      $('#lightbox-image').removeAttribute('src');
+      $('#delete-lightbox-photo').hidden=true;
       $('#cloud-status-text').textContent=!state.configured ? '相册尚未连接，请完成云端配置。' : !state.initialized ? '正在确认相册登录状态……' : state.authenticated ? '此账号还没有相册访问权限。' : '登录后，打开我们共同的私密照片。';
     } else {
       syncCloudAlbum().catch(()=>{});
@@ -706,7 +797,11 @@
       if (cloudMode && cloud.state().authorized) await syncCloudAlbum(true);
       let html, css, config, core, application;
       if (window.__UNIVERSE_OFFLINE_SOURCE__) ({ html, css, config, core, application } = window.__UNIVERSE_OFFLINE_SOURCE__);
-      else [html, css, config, core, application] = await Promise.all(['index.html', 'styles.css', 'config.js', 'time.js', 'app.js'].map(fetchText));
+      else {
+        [html, css, config, core, application] = await Promise.all(['index.html', 'styles.css', 'config.js', 'time.js', 'app.js'].map(fetchText));
+        css += '\n' + await fetchText('album.css');
+        html = html.replace('<link rel="stylesheet" href="album.css">','');
+      }
       const exportedPhotos = await Promise.all(photos.map(async photo => ({ ...photo, src: await inlineAsset(photo.src) })));
       let exportedCss = css;
       const background = /url\(['"]?(assets\/universe-hero\.webp)['"]?\)/;

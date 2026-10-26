@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Check source and resource paths
         run: node scripts/verify.cjs
+      - name: Check recoverable photo deletion
+        run: node scripts/check-album-trash.cjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
