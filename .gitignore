@@ -1,0 +1,6 @@
+/delivery/
+/qa/
+/.private/
+/node_modules/
+*.log
+/.sites-package-tmp/

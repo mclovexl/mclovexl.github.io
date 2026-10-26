@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131c">
+  <meta name="description" content="赵管家与黄少爷的专属小宇宙。从 2026 年 6 月 24 日，到每一个永远。">
+  <title>以你为宇宙 · 赵管家 × 黄少爷</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2310131c'/%3E%3Cpath d='M32 47 15 30C3 15 26 7 32 23 38 7 61 15 49 30Z' fill='%23efb6a9'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" defer></script>
+  <script src="shared-data.js" defer></script>
+  <script src="time.js" defer></script>
+  <script src="cloud-config.js" defer></script>
+  <script src="vendor/supabase.js" defer></script>
+  <script src="cloud.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="以你为宇宙，回到首页"><span class="brand-symbol">✳</span><span>以你为宇宙<small>OUR LITTLE UNIVERSE</small></span></a>
+    <nav class="main-nav" aria-label="主导航">
+      <a href="#home" class="active">我们的宇宙</a><a href="#memories">心动瞬间</a><a href="#story">故事轨迹</a><a href="#play">玩在一起</a>
+    </nav>
+    <div class="header-actions"><button class="cloud-account" id="cloud-account" type="button" hidden>登录相册</button><button class="icon-button music-button" id="music-toggle" type="button" aria-label="播放星空旋律" aria-pressed="false"><span class="sound-bars"><i></i><i></i><i></i><i></i></span></button><button class="customize-button" id="customize" type="button"><span>✧</span> 定制我们</button><button class="icon-button mobile-menu" type="button" id="menu-toggle" aria-label="展开导航" aria-expanded="false">☰</button></div>
+  </header>
+  <main id="main">
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <div class="hero-art" aria-hidden="true"></div><canvas id="starfield" aria-hidden="true"></canvas><div class="hero-vignette" aria-hidden="true"></div>
+      <div class="hero-content wrap">
+        <div class="hero-copy"><p class="eyebrow hero-eyebrow"><span class="tiny-star">✦</span> A UNIVERSE MADE JUST FOR YOU</p>
+          <h1 id="hero-title">宇宙很大，<br>我的中心是<span>你。</span><svg class="title-swish" viewBox="0 0 180 16" aria-hidden="true"><path d="M3 11 Q85 -2 173 6 M60 14 Q116 3 178 11"/></svg></h1>
+          <p class="hero-description">致 <span data-her>黄少爷</span>：<br>漫天星河是背景，而你是我的全部偏爱。</p>
+          <div class="couple"><div class="couple-avatars"><span data-me-initial>赵</span><span data-her-initial>黄</span></div><span><b data-me>赵管家</b><i>♡</i><b data-her>黄少爷</b><small>SINCE <span data-start>2026.06.24</span></small></span></div>
+          <div class="hero-buttons"><a class="button button-pink" href="#memories">开启我们的故事 <span>↗</span></a><button class="hero-wish" id="hero-wish" type="button"><span>✧</span> 向宇宙许个愿</button></div>
+        </div>
+        <div class="orbital-navigation" aria-label="探索我们的宇宙">
+          <div class="orbit-line orbit-one" aria-hidden="true"><span class="hero-orbit-particle"></span></div><div class="orbit-line orbit-two" aria-hidden="true"><span class="hero-orbit-particle"></span></div>
+          <a class="planet-label planet-memories" href="#memories"><span class="mini-planet peach"></span><span>心动星球<small>OUR MEMORIES</small></span></a>
+          <button class="planet-label planet-center" id="center-star" type="button"><span class="center-marker">✦</span><span><b data-her>黄少爷</b><small>你是宇宙的中心</small></span></button>
+          <a class="planet-label planet-story" href="#story"><span class="mini-planet lilac"></span><span>故事卫星<small>OUR JOURNEY</small></span></a>
+          <span class="orbit-caption">ALL MY STARS ORBIT YOU</span>
+        </div>
+      </div>
+      <div class="hero-bottom wrap"><a href="#time"><span class="scroll-line"></span>向下，收集更多心动</a><span>在亿万种可能里，<em>我选择你。</em> <span class="tiny-star">✦</span></span></div>
+    </section>
+
+    <section class="time-section" id="time" aria-labelledby="time-title"><div class="wrap time-layout">
+      <div class="time-intro"><p class="eyebrow">EVERY SECOND, WITH YOU</p><h2 id="time-title">喜欢你，<br>又多了一点。</h2><p>从 <span data-start-chinese>2026 年 6 月 24 日</span> 开始</p></div>
+      <div class="love-clock" aria-label="相恋时长"><p id="clock-intro">我们已经一起走过</p><div class="clock-digits"><span><b id="love-days">—</b><small>天 / DAYS</small></span><i>:</i><span><b id="love-hours">00</b><small>时 / HOURS</small></span><i>:</i><span><b id="love-minutes">00</b><small>分 / MINS</small></span><i>:</i><span><b id="love-seconds">00</b><small>秒 / SECS</small></span></div><p class="clock-promise">每一秒，都在走向我们的永远 <span>♡</span></p></div>
+      <div class="anniversary"><span class="anniversary-icon">✧</span><p id="anniversary-title">距离我们的下一个周年</p><div><b id="anniversary-days">—</b><span>天</span><span class="anniversary-arrow">↗</span></div><small id="anniversary-date">2027.06.24 · 继续相爱</small></div>
+    </div></section>
+
+    <section class="memories-section section-light" id="memories" aria-labelledby="memories-title"><div class="wrap">
+      <div class="section-top"><div><p class="eyebrow"><span>01</span> THE LITTLE THINGS</p><h2 id="memories-title">把心动，<em>留在这一帧。</em><span class="hand-star">✷</span></h2></div><div class="section-aside"><p>照片有边框，<br>我们的小美好没有。</p><button class="text-link" id="add-photo" type="button">放进我们的照片 <span>＋</span></button></div></div>
+      <div class="photo-toolbar"><div class="filter-tabs" role="group" aria-label="筛选照片"><button type="button" class="selected" data-filter="all" aria-pressed="true">全部瞬间 <span id="photo-count">06</span></button><button type="button" data-filter="日常可爱" aria-pressed="false">日常可爱</button><button type="button" data-filter="一起出发" aria-pressed="false">一起出发</button><button type="button" data-filter="心动限定" aria-pressed="false">心动限定</button></div><span class="photo-hint">↗ 点击照片，放大心动</span></div>
+      <div class="cloud-status" id="cloud-status" hidden><span id="cloud-status-text" role="status">登录后，打开我们共同的相册。</span><button type="button" id="sync-album">刷新相册 ↻</button></div><div class="photo-grid" id="photo-grid"></div><p class="demo-note" id="demo-note">✧ 这些风景是等待我们的浪漫灵感。放入真实合照，就变成专属于我们的相册。</p>
+    </div></section>
+
+    <section class="story-section section-light" id="story" aria-labelledby="story-title"><div class="wrap story-layout">
+      <div class="story-intro"><p class="eyebrow"><span>02</span> WRITTEN IN THE STARS</p><h2 id="story-title">我们的故事，<br><em>还很长很长。</em></h2><p>每一段回忆，都是一颗星。<br>慢慢连起来，就成了我们的星座。</p><div class="story-orbit" aria-hidden="true"><span class="drawn-heart">♡</span><i></i><b>you & me</b><span class="orbit-star">✦</span></div><button class="button button-outline" id="add-story" type="button">续写一段故事 <span>＋</span></button></div>
+      <div class="timeline" id="timeline"></div>
+    </div></section>
+
+    <section class="play-section" id="play" aria-labelledby="play-title"><div class="wrap"><div class="section-top"><div><p class="eyebrow"><span>03</span> OUR HAPPY LITTLE SPACE</p><h2 id="play-title">一起幼稚，<em>一起开心。</em></h2></div><p class="play-aside">快乐这件小事，<br>和你一起就很拿手。</p></div>
+      <div class="game-grid"><button class="game-card memory-card" id="open-memory" type="button"><span class="game-number">GAME / 01</span><div class="memory-preview" aria-hidden="true"><span>✦</span><span>♡</span><span>✦</span><span>☾</span></div><div class="game-card-bottom"><div><h3>心有灵犀</h3><p>翻开星星，找到心动的另一半。</p></div><span class="game-arrow">↗</span></div></button>
+      <button class="game-card catch-card" id="open-catch" type="button"><span class="game-number">GAME / 02</span><div class="catch-preview" aria-hidden="true"><span>♡</span><i>✦</i><b>♥</b><em>♡</em></div><div class="game-card-bottom"><div><h3>接住我的喜欢</h3><p>我的喜欢掉下来了，快来接住。</p></div><span class="game-arrow">↗</span></div></button>
+      <button class="game-card date-card" id="open-date" type="button"><span class="game-number">SURPRISE / 03</span><div class="date-preview" aria-hidden="true"><span class="gift-ribbon"></span><span class="gift-box">♡</span><i>✧</i></div><div class="game-card-bottom"><div><h3>约会盲盒</h3><p>把下一次浪漫，交给一点点惊喜。</p></div><span class="game-arrow">↗</span></div></button></div>
+    </div></section>
+
+    <section class="wish-section" id="wishes" aria-labelledby="wish-title"><div class="wrap wish-layout"><div><p class="eyebrow"><span>04</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>想和你做的事，数也数不完。<br>先把它们放进星空里，一件一件实现。</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button></div><div class="wish-sky" id="wish-sky" aria-label="我们的愿望星空"></div></div></section>
+
+    <section class="letter-section" id="letter" aria-labelledby="letter-title"><div class="letter-decoration" aria-hidden="true">♡</div><div class="wrap letter-wrap"><p class="eyebrow">A LITTLE LETTER, A LOT OF LOVE</p><h2 id="letter-title">写给<span data-her>黄少爷</span>的<br><em>一封小小情书。</em></h2><p class="letter-lead">有些话，想认真地说给你听。</p><button class="envelope-button" id="open-letter" type="button" aria-expanded="false" aria-controls="letter-paper"><span class="envelope-shape"><i></i><b>♡</b></span><span class="envelope-label">拆开这封信 <span>↗</span></span></button><article class="letter-paper" id="letter-paper" hidden><span class="paper-star" aria-hidden="true">✧</span><div id="letter-body"></div><p class="letter-signature">永远偏爱你的，<span data-me>赵管家</span><small>从 <span data-start>2026.06.24</span> 到很久很久以后</small></p></article><p class="forever-promise" data-promise>我们会一直永远的在一起</p><span class="forever-label">YOU ARE MY ALWAYS & FOREVER.</span></div></section>
+  </main>
+  <footer class="site-footer wrap"><a class="brand" href="#home"><span class="brand-symbol">✳</span><span>以你为宇宙<small>OUR LITTLE UNIVERSE</small></span></a><p>由 <span data-me>赵管家</span> 为 <span data-her>黄少爷</span>，用偏爱建造。<br><span>始于 <span data-start>2026.06.24</span> · 未完待续</span></p><button class="text-link" id="export-gift" type="button">打包送给她 <span>↗</span></button></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div><div id="celebration" aria-hidden="true"></div>
+
+  <dialog id="account-dialog" class="form-dialog small-dialog"><div class="account-panel"><div class="dialog-heading"><div><p class="eyebrow">OUR PRIVATE LITTLE ALBUM</p><h2 id="account-title">登录我们的相册</h2></div><button type="button" class="close-dialog" aria-label="关闭相册登录" data-close>×</button></div><p class="form-note" id="account-description">只属于我们的照片，登录后才能看见。登录同一个账号，就能在其他设备打开同一本相册。</p><form id="account-login-form"><label>相册登录邮箱<input name="email" type="email" required autocomplete="username"></label><label>相册密码<input name="password" type="password" required autocomplete="current-password" maxlength="128"></label><button class="button button-pink form-submit" type="submit">进入我们的相册 <span>♡</span></button></form><form id="account-enroll-form" hidden><label>开通的邮箱<input name="email" type="email" readonly autocomplete="username"></label><label>设置相册密码（至少 12 个字符）<input name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label><label>再输入一次密码<input name="confirmPassword" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></label><button class="button button-pink form-submit" type="submit">开通并进入相册 <span>✧</span></button></form><div id="account-member-panel" hidden><p id="account-member-email"></p><p class="form-note">照片已由云端保存，打开其他设备也能看见。此处退出只会退出当前设备。</p><button class="button button-outline form-submit" id="account-logout" type="button">退出当前设备</button></div><p class="account-feedback" id="account-feedback" role="status"></p></div></dialog>
+  <dialog id="settings-dialog" class="form-dialog"><form id="settings-form"><div class="dialog-heading"><div><p class="eyebrow">MAKE IT OURS</p><h2>定制我们的宇宙</h2></div><button type="button" class="close-dialog" aria-label="关闭定制" data-close>×</button></div><p class="form-note">这些小细节，让这里只属于我们。修改保存在当前浏览器，打包后可以一起送给她。</p><div class="form-row"><label>我的昵称<input name="me" required maxlength="16" autocomplete="off"></label><label>她的昵称<input name="her" required maxlength="16" autocomplete="off"></label></div><label>我们在一起的日子<input type="date" name="startDate" required min="1900-01-01" max="2100-12-31"></label><label>想对她说的一句话<input name="promise" required maxlength="100"></label><label>给她的情书<textarea name="letter" rows="7" maxlength="6000" required></textarea></label><button class="button button-pink form-submit" type="submit">保存这份专属 <span>♡</span></button></form></dialog>
+  <dialog id="upload-dialog" class="form-dialog"><form id="photo-form"><div class="dialog-heading"><div><p class="eyebrow">COLLECT A LITTLE MOMENT</p><h2>收藏我们的照片</h2></div><button type="button" class="close-dialog" aria-label="关闭上传" data-close>×</button></div><label class="upload-zone"><span>＋</span><b>选择我们的小美好</b><small>JPG、PNG、WebP · 可多选，每次最多 12 张</small><input type="file" id="photo-files" accept="image/jpeg,image/png,image/webp" multiple required></label><p id="file-status" class="form-note">照片保存在当前浏览器。点击「打包送给她」，可以把照片和网站一起带走。</p><label>为这一组照片写句话<input name="title" placeholder="例如：和你一起看日落" maxlength="60" required></label><div class="form-row"><label>属于哪种心动<select name="category"><option>日常可爱</option><option>一起出发</option><option>心动限定</option></select></label><label>拍摄日期（可选）<input type="date" name="date"></label></div><button class="button button-pink form-submit" type="submit" id="photo-submit">放进我们的相册 <span>＋</span></button></form></dialog>
+  <dialog id="story-dialog" class="form-dialog"><form id="story-form"><div class="dialog-heading"><div><p class="eyebrow">ANOTHER PAGE OF US</p><h2>续写我们的故事</h2></div><button type="button" class="close-dialog" aria-label="关闭故事编辑" data-close>×</button></div><label>这一天<input type="date" name="date" required></label><label>这一页的名字<input name="title" placeholder="例如：第一次一起去看海" required maxlength="60"></label><label>把回忆写下来<textarea name="body" rows="5" placeholder="那些不想忘记的小细节……" required maxlength="2000"></textarea></label><button class="button button-pink form-submit" type="submit">把这颗星留住 <span>✦</span></button></form></dialog>
+  <dialog id="wish-dialog" class="form-dialog small-dialog"><form id="wish-form"><div class="dialog-heading"><div><p class="eyebrow">MAKE A WISH</p><h2>想和你一起……</h2></div><button type="button" class="close-dialog" aria-label="关闭愿望编辑" data-close>×</button></div><label>我们的小心愿<input name="text" required maxlength="40" placeholder="例如：一起看一场海边的日出"></label><p class="form-note">愿望会变成星星。再次点击它，就能点亮「已实现」。</p><button class="button button-pink form-submit" type="submit">让愿望发光 <span>✧</span></button></form></dialog>
+  <dialog id="lightbox" class="lightbox" aria-label="照片大图"><button type="button" class="close-dialog lightbox-close" aria-label="关闭大图" data-close>×</button><div class="lightbox-stage"><button type="button" class="lightbox-arrow" id="photo-prev" aria-label="上一张照片">←</button><figure><img id="lightbox-image" src="" alt=""><figcaption><span id="lightbox-caption"></span><small id="lightbox-counter"></small></figcaption></figure><button type="button" class="lightbox-arrow" id="photo-next" aria-label="下一张照片">→</button></div></dialog>
+  <dialog id="game-dialog" class="game-dialog"><div class="dialog-heading"><div><p class="eyebrow" id="game-eyebrow">PLAY WITH ME</p><h2 id="game-title">心有灵犀</h2></div><button type="button" class="close-dialog" aria-label="关闭小游戏" data-close>×</button></div><div id="game-content"></div></dialog>
+</body>
+</html>

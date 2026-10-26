@@ -1,0 +1,11 @@
+{
+  "name": "our-little-universe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "赵管家与黄少爷的专属小宇宙",
+  "scripts": {
+    "check": "node scripts/verify.cjs",
+    "gift": "node scripts/build-gift.cjs",
+    "check:cloud": "python scripts/cloud-access-check.py"
+  }
+}

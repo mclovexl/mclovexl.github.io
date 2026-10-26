@@ -1,0 +1,2 @@
+2.118.0
+https://registry.npmjs.org/@supabase/supabase-js/-/supabase-js-2.118.0.tgz

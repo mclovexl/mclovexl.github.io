@@ -1,0 +1,28 @@
+/* 将网站及所有素材打成可直接双击的单文件。无需安装依赖。 */
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const root = path.resolve(__dirname, '..');
+const dist = path.join(root, 'dist');
+const read = file => fs.readFileSync(path.join(dist, file), 'utf8');
+const dataUrl = file => `data:${file.endsWith('.webp') ? 'image/webp' : file.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${fs.readFileSync(path.join(dist, file)).toString('base64')}`;
+const safe = text => text.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
+const config = read('config.js');
+const context = { window: {} };
+vm.runInNewContext(config, context);
+const base = context.window.UNIVERSE_CONFIG;
+const settings = Object.fromEntries(['me','her','startDate','promise','letter'].map(key => [key, base[key]]));
+const source = { html: read('index.html'), css: read('styles.css').replace(/url\(['"]?(assets\/universe-hero\.webp)['"]?\)/, () => `url('${dataUrl('assets/universe-hero.webp')}')`), config, core: read('time.js'), application: read('app.js') };
+source.html=source.html.replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'');
+const bootstrap = { settings, photos: base.photos.map(photo => ({ ...photo, src: dataUrl(photo.src) })) };
+let html = source.html;
+html = html.replace('<link rel="stylesheet" href="styles.css">', () => `<style>${source.css}</style>`);
+html = html.replace('<script src="config.js" defer></script>', () => `<script>${safe(config)}</script>`);
+html = html.replace('<script src="shared-data.js" defer></script>', () => `<script>window.UNIVERSE_BOOTSTRAP=${safe(JSON.stringify(bootstrap))};window.__UNIVERSE_OFFLINE_SOURCE__=${safe(JSON.stringify(source))};</script>`);
+html = html.replace('<script src="time.js" defer></script>', () => `<script>${safe(source.core)}</script>`);
+html = html.replace('<script src="app.js" defer></script>', () => `<script>document.addEventListener('DOMContentLoaded',function(){${safe(source.application)}\n});</script>`);
+const outputDir = path.join(root, 'delivery');
+fs.mkdirSync(outputDir, { recursive: true });
+const outputPath = path.join(outputDir, '以你为宇宙-赵管家和黄少爷.html');
+fs.writeFileSync(outputPath, html, 'utf8');
+console.log(`Created ${outputPath} (${fs.statSync(outputPath).size} bytes)`);

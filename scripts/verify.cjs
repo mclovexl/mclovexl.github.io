@@ -1,0 +1,36 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const root = path.resolve(__dirname, '..');
+const dist = path.join(root, 'dist');
+const Time = require(path.join(dist, 'time.js'));
+const now = Date.parse('2026-10-26T14:30:45+08:00');
+assert.deepEqual(Time.clock(now, '2026-06-24'), { future: false, days: 124, hours: 14, minutes: 30, seconds: 45 });
+assert.deepEqual(Time.anniversary(now, '2026-06-24'), { days: 241, date: '2027-06-24', years: 1, today: false, futureStart: false });
+assert.equal(Time.clock(Date.parse('2026-06-24T00:00:00+08:00'), '2026-06-24').days, 0);
+assert.equal(Time.clock(Date.parse('2026-06-23T23:59:59+08:00'), '2026-06-24').future, true);
+assert.equal(Time.anniversary(Date.parse('2027-06-24T23:59:59+08:00'), '2026-06-24').days, 0);
+assert.equal(Time.anniversary(Date.parse('2027-06-25T00:00:00+08:00'), '2026-06-24').date, '2028-06-24');
+assert.equal(Time.anniversary(Date.parse('2026-01-01T12:00:00+08:00'), '2026-06-24').futureStart, true);
+assert.equal(Time.anniversary(Date.parse('2025-01-01T12:00:00+08:00'), '2024-02-29').date, '2025-02-28');
+assert.equal(Time.todayShanghai(Date.parse('2026-10-25T16:00:00Z')), '2026-10-26');
+assert.throws(() => Time.dateParts('2026-02-30'));
+for (const file of ['config.js', 'shared-data.js', 'time.js', 'cloud-config.js', 'cloud.js', 'app.js']) new vm.Script(fs.readFileSync(path.join(dist, file), 'utf8'), { filename: file });
+const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
+const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+assert.equal(new Set(ids).size, ids.length, 'Duplicate IDs');
+for (const match of html.matchAll(/(?:href|src)="([^"#]+)"/g)) {
+  const target = match[1];
+  if (!target.startsWith('data:') && !target.startsWith('http')) assert.ok(fs.existsSync(path.join(dist, target)), `Missing ${target}`);
+}
+const configContext = { window: {} };
+vm.runInNewContext(fs.readFileSync(path.join(dist, 'config.js'), 'utf8'), configContext);
+const config = configContext.window.UNIVERSE_CONFIG;
+assert.equal(config.me, '赵管家');
+assert.equal(config.her, '黄少爷');
+assert.equal(config.startDate, '2026-06-24');
+assert.equal(config.promise, '我们会一直永远的在一起');
+for (const photo of config.photos) assert.ok(fs.statSync(path.join(dist, photo.src)).size > 1000);
+assert.ok(fs.statSync(path.join(dist, 'assets/universe-hero.webp')).size > 1000);
+console.log('PASS: personalized content, assets, JavaScript syntax, unique IDs, clocks, timezone and anniversary boundaries.');
