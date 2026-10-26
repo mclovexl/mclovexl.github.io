@@ -13,10 +13,10 @@
   const save = (key, value) => localStorage.setItem(storagePrefix + key, JSON.stringify(value));
   const node = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
   const dotted = (date) => date.replaceAll('-', '.');
-  const initialSettings = Object.fromEntries(['me', 'her', 'startDate', 'startTime', 'promise', 'letter'].map(key => [key, base[key]]));
+  const initialSettings = Object.fromEntries(['me', 'her', 'startDate', 'promise', 'letter'].map(key => [key, base[key]]));
   let settings = { ...initialSettings, ...shared.settings, ...safeRead('settings', {}) };
+  delete settings.startTime; // Ignore the previous version's browser-saved hour.
   try { Time.dateParts(settings.startDate); } catch { settings.startDate = base.startDate; }
-  try { Time.timeParts(settings.startTime); } catch { settings.startTime = base.startTime; }
   for (const key of ['me', 'her', 'promise', 'letter']) if (typeof settings[key] !== 'string' || !settings[key].trim()) settings[key] = base[key];
   let customStories = safeRead('stories', shared.stories || []);
   if (!Array.isArray(customStories)) customStories = [];
@@ -31,6 +31,8 @@
   if (!Array.isArray(wishes)) wishes = [];
   let photos = shared.photos?.length ? shared.photos : base.photos;
   let currentFilter = 'all';
+  const photosPerPage = 10;
+  let currentPhotoPage = 1;
   let filteredPhotos = photos;
   let lightboxIndex = 0;
   let toastTimeout;
@@ -83,8 +85,7 @@
     $$('[data-her-initial]').forEach(el => el.textContent = [...settings.her][0]);
     $$('[data-start]').forEach(el => el.textContent = dotted(settings.startDate));
     const [y, m, d] = settings.startDate.split('-').map(Number);
-    $$('[data-start-chinese]').forEach(el => el.textContent = `${y} 年 ${m} 月 ${d} 日`);
-    $$('[data-start-time]').forEach(el => el.textContent = settings.startTime);
+    $$('[data-start-chinese]').forEach(el => el.textContent = `${String(y).slice(-2)} 年 ${m} 月 ${d} 日`);
     $$('[data-promise]').forEach(el => el.textContent = settings.promise);
     $('#letter-body').textContent = settings.letter;
     document.title = `你就是我的宇宙 · ${settings.me} × ${settings.her}`;
@@ -94,10 +95,10 @@
   }
   function renderClock() {
     const now = Date.now();
-    const clock = Time.clock(now, settings.startDate, settings.startTime);
+    const clock = Time.clock(now, settings.startDate);
     $('#love-days').textContent = clock.days;
     for (const unit of ['hours', 'minutes', 'seconds']) $(`#love-${unit}`).textContent = String(clock[unit]).padStart(2, '0');
-    $('#clock-intro').textContent = clock.future ? '距离我们的故事开始，还有' : '我们已经一起走过';
+    $('#clock-intro').textContent = clock.future ? '距离我们的故事开始，还有' : '我们在一起的第';
     const next = Time.anniversary(now, settings.startDate);
     $('#anniversary-days').textContent = next.days;
     $('#anniversary-date').textContent = `${dotted(next.date)} · ${next.today ? '今天也要好好相爱' : '继续相爱'}`;
@@ -105,7 +106,7 @@
   }
   $('#customize').addEventListener('click', () => {
     const form = $('#settings-form');
-    for (const key of ['me', 'her', 'startDate', 'startTime', 'promise', 'letter']) form.elements.namedItem(key).value = settings[key];
+    for (const key of ['me', 'her', 'startDate', 'promise', 'letter']) form.elements.namedItem(key).value = settings[key];
     openDialog('#settings-dialog');
   });
   $('#settings-form').addEventListener('submit', event => {
@@ -113,7 +114,7 @@
     const next = Object.fromEntries(new FormData(event.currentTarget));
     for (const key in next) next[key] = next[key].trim();
     if (Object.values(next).some(value => !value)) { toast('填上我们的小细节再保存吧。'); return; }
-    try { Time.dateParts(next.startDate); Time.timeParts(next.startTime); save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
+    try { Time.dateParts(next.startDate); save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
     settings = next;
     renderSettings();
     $('#settings-dialog').close();
@@ -123,17 +124,22 @@
 
   function renderPhotos() {
     filteredPhotos = photos.filter(photo => currentFilter === 'all' || photo.category === currentFilter);
+    const pageCount = Math.max(1, Math.ceil(filteredPhotos.length / photosPerPage));
+    currentPhotoPage = Math.min(pageCount, Math.max(1, currentPhotoPage));
+    const offset = (currentPhotoPage - 1) * photosPerPage;
+    const visiblePhotos = filteredPhotos.slice(offset, offset + photosPerPage);
     const grid = $('#photo-grid');
     grid.replaceChildren();
     $('#photo-count').textContent = String(photos.length).padStart(2, '0');
     $('#demo-note').hidden = !photos.some(photo => photo.demo);
     if (!filteredPhotos.length) grid.append(node('p', 'empty-photos', '这一页，等我们下一次心动来填满。♡'));
     const rotations = [-2.3, 1.5, -1.1, 1.3, -1.8, 2];
-    filteredPhotos.forEach((photo, index) => {
+    visiblePhotos.forEach((photo, index) => {
+      const photoIndex = offset + index;
       const button = node('button', 'polaroid');
       button.type = 'button';
       button.setAttribute('aria-label', `查看照片：${photo.title}${photo.demo ? '（氛围示例）' : ''}`);
-      button.style.setProperty('--tilt', `${rotations[index % rotations.length]}deg`);
+      button.style.setProperty('--tilt', `${rotations[photoIndex % rotations.length]}deg`);
       const imageWrap = node('div', 'polaroid-image');
       const image = node('img');
       image.src = photo.src;
@@ -149,25 +155,42 @@
       caption.append(node('h3', '', photo.title), node('p', '', photo.date ? dotted(photo.date) : `${photo.category} / LITTLE MOMENTS`));
       info.append(caption, node('span', 'photo-heart', '♡'));
       button.append(imageWrap, info);
-      button.addEventListener('click', () => { lightboxIndex = index; renderLightbox(); openDialog('#lightbox'); });
+      button.addEventListener('click', () => { lightboxIndex = photoIndex; renderLightbox(); openDialog('#lightbox'); });
       grid.append(button);
     });
+    $('#photo-pagination').hidden = pageCount <= 1;
+    $('#photo-page-status').textContent = `第 ${currentPhotoPage} / ${pageCount} 页`;
+    $('#photo-page-meta').textContent = `共 ${filteredPhotos.length} 张 · 每页 ${photosPerPage} 张`;
+    $('#photo-page-prev').disabled = currentPhotoPage <= 1;
+    $('#photo-page-next').disabled = currentPhotoPage >= pageCount;
   }
+  function turnPhotoPage(step) {
+    currentPhotoPage += step;
+    renderPhotos();
+    const grid = $('#photo-grid');
+    grid.focus({preventScroll:true});
+    grid.scrollIntoView({behavior:reducedMotion ? 'instant' : 'smooth',block:'start'});
+  }
+  $('#photo-page-prev').addEventListener('click', () => turnPhotoPage(-1));
+  $('#photo-page-next').addEventListener('click', () => turnPhotoPage(1));
   $$('.filter-tabs button').forEach(button => button.addEventListener('click', () => {
     currentFilter = button.dataset.filter;
+    currentPhotoPage = 1;
     $$('.filter-tabs button').forEach(tab => { const active = tab === button; tab.classList.toggle('selected', active); tab.setAttribute('aria-pressed', String(active)); });
     renderPhotos();
   }));
   function renderLightbox() {
     const photo = filteredPhotos[lightboxIndex];
     if (!photo) return;
+    const photoPage = Math.floor(lightboxIndex / photosPerPage) + 1;
+    if (currentPhotoPage !== photoPage) { currentPhotoPage = photoPage; renderPhotos(); }
     $('#lightbox-image').src = photo.src;
     $('#lightbox-image').alt = photo.title;
     $('#lightbox-caption').textContent = `${photo.title}${photo.demo ? '\n氛围示例 · 等待我们的真实照片' : photo.date ? `\n${dotted(photo.date)}` : ''}`;
     $('#lightbox-counter').textContent = `${lightboxIndex + 1} / ${filteredPhotos.length}`;
     $('#delete-lightbox-photo').hidden = !(cloudMode && cloud.state().authorized && photo.canManage && !photo.demo);
   }
-  function shiftPhoto(step) { lightboxIndex = (lightboxIndex + step + filteredPhotos.length) % filteredPhotos.length; renderLightbox(); }
+  function shiftPhoto(step) { if (!filteredPhotos.length) return; lightboxIndex = (lightboxIndex + step + filteredPhotos.length) % filteredPhotos.length; renderLightbox(); }
   $('#photo-prev').addEventListener('click', () => shiftPhoto(-1));
   $('#photo-next').addEventListener('click', () => shiftPhoto(1));
   $('#lightbox').addEventListener('keydown', event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); shiftPhoto(event.key === 'ArrowLeft' ? -1 : 1); } });
@@ -333,6 +356,7 @@
         photos = next;
       }
       currentFilter = 'all';
+      currentPhotoPage = 1;
       $$('.filter-tabs button').forEach(tab => { tab.classList.toggle('selected', tab.dataset.filter === 'all'); tab.setAttribute('aria-pressed', String(tab.dataset.filter === 'all')); });
       renderPhotos();
       $('#upload-dialog').close();
@@ -403,6 +427,7 @@
     $('#cloud-account').textContent=state.authorized ? '共享相册 ♡' : '登录相册';
     if (!state.authorized) {
       photos=base.photos;
+      currentPhotoPage=1;
       renderPhotos();
       if ($('#lightbox').open) $('#lightbox').close();
       if ($('#upload-dialog').open) $('#upload-dialog').close();

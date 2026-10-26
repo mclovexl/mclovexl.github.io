@@ -22,10 +22,11 @@
     const [hours, minutes] = timeParts(time);
     return atShanghaiMidnight(date) + (hours * 60 + minutes) * 60000;
   }
-  function clock(now, startDate, startTime = '00:00') {
-    const delta = now - atShanghaiTime(startDate, startTime);
+  function clock(now, startDate) {
+    const delta = now - atShanghaiMidnight(startDate);
     const seconds = Math.floor(Math.abs(delta) / 1000);
-    return { future: delta < 0, days: Math.floor(seconds / 86400), hours: Math.floor(seconds / 3600) % 24, minutes: Math.floor(seconds / 60) % 60, seconds: seconds % 60 };
+    // The start date is day 1; each new day begins at Shanghai midnight.
+    return { future: delta < 0, days: Math.floor(seconds / 86400) + (delta >= 0 ? 1 : 0), hours: Math.floor(seconds / 3600) % 24, minutes: Math.floor(seconds / 60) % 60, seconds: seconds % 60 };
   }
   function anniversary(now, startDate) {
     const [startYear, month, day] = dateParts(startDate);

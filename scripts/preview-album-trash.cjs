@@ -1,6 +1,7 @@
 /* Local UI fixture only: no credentials, cloud requests, or real photo changes. */
 const fs=require('node:fs'), path=require('node:path'), http=require('node:http');
 const root=path.resolve(__dirname,'..'), dist=path.join(root,'dist');
+const fixtureCount=process.argv.includes('--pagination') ? 31 : 2;
 const mock=`(() => {
   let authorized=true, offline=false;
   const subscribers=new Set();
@@ -9,6 +10,9 @@ const mock=`(() => {
     {id:'11111111-1111-4111-8111-111111111111',src:'assets/memory-sea.jpg',title:'本地测试 A · 我上传的照片',category:'一起出发',date:'2026-06-24',demo:false,canManage:true,deletedAt:null},
     {id:'22222222-2222-4222-8222-222222222222',src:'assets/memory-sunset.jpg',title:'本地测试 B · 另一位上传的照片',category:'心动限定',date:'',demo:false,canManage:false,deletedAt:null}
   ];
+  for(let i=2;i<${fixtureCount};i++) photos.push({id:'30000000-0000-4000-8000-'+String(i).padStart(12,'0'),src:window.UNIVERSE_CONFIG.photos[i%6].src,title:'分页测试 '+String(i+1).padStart(2,'0'),category:['日常可爱','一起出发','心动限定'][i%3],date:'2026-06-24',demo:false,canManage:true,deletedAt:null});
+  // Model an old exported setting; the current app must ignore this start hour.
+  window.UNIVERSE_BOOTSTRAP={settings:{startTime:'19:30'}};
   const check=()=>{if(offline)throw new Error('本地模拟：网络未连接，请稍后重试');if(!authorized)throw new Error('请先登录');};
   const copy=a=>a.map(p=>({...p}));
   window.UniverseCloud={enabled:true,state,init:async()=>{for(const fn of subscribers)fn(state());},subscribe(fn){subscribers.add(fn);return()=>subscribers.delete(fn);},
