@@ -11,7 +11,7 @@ const config = read('config.js');
 const context = { window: {} };
 vm.runInNewContext(config, context);
 const base = context.window.UNIVERSE_CONFIG;
-const settings = Object.fromEntries(['me','her','startDate','promise','letter'].map(key => [key, base[key]]));
+const settings = Object.fromEntries(['me','her','startDate','startTime','promise','letter'].map(key => [key, base[key]]));
 const source = { html: read('index.html'), css: read('styles.css').replace(/url\(['"]?(assets\/universe-hero\.webp)['"]?\)/, () => `url('${dataUrl('assets/universe-hero.webp')}')`), config, core: read('time.js'), application: read('app.js') };
 source.html=source.html.replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'');
 const bootstrap = { settings, photos: base.photos.map(photo => ({ ...photo, src: dataUrl(photo.src) })) };
@@ -23,6 +23,6 @@ html = html.replace('<script src="time.js" defer></script>', () => `<script>${sa
 html = html.replace('<script src="app.js" defer></script>', () => `<script>document.addEventListener('DOMContentLoaded',function(){${safe(source.application)}\n});</script>`);
 const outputDir = path.join(root, 'delivery');
 fs.mkdirSync(outputDir, { recursive: true });
-const outputPath = path.join(outputDir, '以你为宇宙-赵管家和黄少爷.html');
+const outputPath = path.join(outputDir, '你就是我的宇宙-赵管家和黄少爷.html');
 fs.writeFileSync(outputPath, html, 'utf8');
 console.log(`Created ${outputPath} (${fs.statSync(outputPath).size} bytes)`);

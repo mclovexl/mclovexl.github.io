@@ -13,9 +13,10 @@
   const save = (key, value) => localStorage.setItem(storagePrefix + key, JSON.stringify(value));
   const node = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
   const dotted = (date) => date.replaceAll('-', '.');
-  const initialSettings = Object.fromEntries(['me', 'her', 'startDate', 'promise', 'letter'].map(key => [key, base[key]]));
+  const initialSettings = Object.fromEntries(['me', 'her', 'startDate', 'startTime', 'promise', 'letter'].map(key => [key, base[key]]));
   let settings = { ...initialSettings, ...shared.settings, ...safeRead('settings', {}) };
   try { Time.dateParts(settings.startDate); } catch { settings.startDate = base.startDate; }
+  try { Time.timeParts(settings.startTime); } catch { settings.startTime = base.startTime; }
   for (const key of ['me', 'her', 'promise', 'letter']) if (typeof settings[key] !== 'string' || !settings[key].trim()) settings[key] = base[key];
   let customStories = safeRead('stories', shared.stories || []);
   if (!Array.isArray(customStories)) customStories = [];
@@ -81,16 +82,17 @@
     $$('[data-start]').forEach(el => el.textContent = dotted(settings.startDate));
     const [y, m, d] = settings.startDate.split('-').map(Number);
     $$('[data-start-chinese]').forEach(el => el.textContent = `${y} 年 ${m} 月 ${d} 日`);
+    $$('[data-start-time]').forEach(el => el.textContent = settings.startTime);
     $$('[data-promise]').forEach(el => el.textContent = settings.promise);
     $('#letter-body').textContent = settings.letter;
-    document.title = `以你为宇宙 · ${settings.me} × ${settings.her}`;
+    document.title = `你就是我的宇宙 · ${settings.me} × ${settings.her}`;
     $('meta[name="description"]').content = `${settings.me}与${settings.her}的专属小宇宙。从 ${dotted(settings.startDate)}，到每一个永远。`;
     renderClock();
     renderStories();
   }
   function renderClock() {
     const now = Date.now();
-    const clock = Time.clock(now, settings.startDate);
+    const clock = Time.clock(now, settings.startDate, settings.startTime);
     $('#love-days').textContent = clock.days;
     for (const unit of ['hours', 'minutes', 'seconds']) $(`#love-${unit}`).textContent = String(clock[unit]).padStart(2, '0');
     $('#clock-intro').textContent = clock.future ? '距离我们的故事开始，还有' : '我们已经一起走过';
@@ -101,7 +103,7 @@
   }
   $('#customize').addEventListener('click', () => {
     const form = $('#settings-form');
-    for (const key of ['me', 'her', 'startDate', 'promise', 'letter']) form.elements.namedItem(key).value = settings[key];
+    for (const key of ['me', 'her', 'startDate', 'startTime', 'promise', 'letter']) form.elements.namedItem(key).value = settings[key];
     openDialog('#settings-dialog');
   });
   $('#settings-form').addEventListener('submit', event => {
@@ -109,7 +111,7 @@
     const next = Object.fromEntries(new FormData(event.currentTarget));
     for (const key in next) next[key] = next[key].trim();
     if (Object.values(next).some(value => !value)) { toast('填上我们的小细节再保存吧。'); return; }
-    try { Time.dateParts(next.startDate); save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
+    try { Time.dateParts(next.startDate); Time.timeParts(next.startTime); save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
     settings = next;
     renderSettings();
     $('#settings-dialog').close();
@@ -717,11 +719,11 @@
       html = html.replace('<script src="shared-data.js" defer></script>', () => `<script>window.UNIVERSE_BOOTSTRAP=${scriptSafe(JSON.stringify(data))};window.__UNIVERSE_OFFLINE_SOURCE__=${scriptSafe(JSON.stringify(offlineSource))};</script>`);
       html = html.replace('<script src="time.js" defer></script>', () => `<script>${scriptSafe(core)}</script>`);
       html = html.replace('<script src="app.js" defer></script>', () => `<script>document.addEventListener('DOMContentLoaded',function(){${scriptSafe(application)}\n});</script>`);
-      html = html.replace(/<title>.*?<\/title>/, () => `<title>以你为宇宙 · ${settings.me.replace(/[<>&]/g, '')} × ${settings.her.replace(/[<>&]/g, '')}</title>`);
+      html = html.replace(/<title>.*?<\/title>/, () => `<title>你就是我的宇宙 · ${settings.me.replace(/[<>&]/g, '')} × ${settings.her.replace(/[<>&]/g, '')}</title>`);
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob), anchor = node('a');
       anchor.href = url;
-      anchor.download = `以你为宇宙-${settings.me}-${settings.her}.html`.replace(/[\\/:*?"<>|]/g, '-');
+      anchor.download = `你就是我的宇宙-${settings.me}-${settings.her}.html`.replace(/[\\/:*?"<>|]/g, '-');
       document.body.append(anchor);
       anchor.click();
       anchor.remove();

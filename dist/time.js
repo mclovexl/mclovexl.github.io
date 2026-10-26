@@ -14,8 +14,16 @@
     const [year, month, day] = dateParts(value);
     return Date.UTC(year, month - 1, day) - OFFSET;
   }
-  function clock(now, startDate) {
-    const delta = now - atShanghaiMidnight(startDate);
+  function timeParts(value) {
+    if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new Error('请输入有效的时分');
+    return value.split(':').map(Number);
+  }
+  function atShanghaiTime(date, time = '00:00') {
+    const [hours, minutes] = timeParts(time);
+    return atShanghaiMidnight(date) + (hours * 60 + minutes) * 60000;
+  }
+  function clock(now, startDate, startTime = '00:00') {
+    const delta = now - atShanghaiTime(startDate, startTime);
     const seconds = Math.floor(Math.abs(delta) / 1000);
     return { future: delta < 0, days: Math.floor(seconds / 86400), hours: Math.floor(seconds / 3600) % 24, minutes: Math.floor(seconds / 60) % 60, seconds: seconds % 60 };
   }
@@ -31,7 +39,7 @@
     return { days: Math.round((target - today) / DAY), date: targetDate, years: year - startYear, today: target === today, futureStart: year === startYear };
   }
   function todayShanghai(now = Date.now()) { return new Date(now + OFFSET).toISOString().slice(0, 10); }
-  const api = { dateParts, atShanghaiMidnight, clock, anniversary, todayShanghai };
+  const api = { dateParts, timeParts, atShanghaiMidnight, atShanghaiTime, clock, anniversary, todayShanghai };
   root.UniverseTime = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
