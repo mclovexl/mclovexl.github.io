@@ -4,6 +4,8 @@
   const enabled = config.enabled !== false;
   const configured = enabled && /^https:\/\/[a-z0-9]+\.supabase\.co$/.test(config.url || '') && !!config.publishableKey && !!window.supabase;
   const listeners = new Set();
+  const signedPhotoUrls = new Map();
+  const photoFields = 'id,object_path,title,category,photo_date,created_at,created_by,deleted_at';
   let client, session = null, role = null, initialized = false, revision = 0;
   let pendingInvite = new URLSearchParams(location.hash.slice(1)).get('invite');
   if (pendingInvite) history.replaceState(null,'',location.pathname+location.search);
@@ -19,12 +21,13 @@
     const current = ++revision;
     const sameIdentity=!!next && session?.user?.id===next.user.id && session?.user?.email===next.user.email;
     session = next;
-    if(!sameIdentity) { role=null; emit(); }
+    if(!sameIdentity) { role=null; signedPhotoUrls.clear(); emit(); }
     if (next) {
       const {data,error} = await client.rpc('current_album_role');
       if (current!==revision) return;
       if (error) throw failure('暂时无法核对相册权限，请稍后重新登录');
       role = data;
+      if (!role) signedPhotoUrls.clear();
     }
     initialized = true;
     emit();
@@ -35,7 +38,7 @@
       auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:'our-universe-cloud-auth'}
     });
     client.auth.onAuthStateChange((_event,next) => {
-      queueMicrotask(() => updateSession(next).catch(() => { initialized=true; role=null; emit(); }));
+      queueMicrotask(() => updateSession(next).catch(() => { initialized=true; role=null; signedPhotoUrls.clear(); emit(); }));
     });
     const {data,error} = await client.auth.getSession();
     if (error) throw failure('无法读取登录状态，请重新登录');
@@ -51,6 +54,7 @@
   async function logout() {
     revision++;
     session=null; role=null;
+    signedPhotoUrls.clear();
     emit();
     const {error} = await client.auth.signOut({scope:'local'});
     if (error) throw failure('本机已退出；请检查网络后再次确认退出状态');
@@ -58,17 +62,44 @@
   async function readPhotos(trashed = false, offset = 0) {
     requireAccess();
     const current=revision, author=session.user.id;
-    let query=client.from('album_photos').select('id,object_path,title,category,photo_date,created_at,created_by,deleted_at').eq('album_id',config.album);
-    query=trashed ? query.eq('created_by',author).not('deleted_at','is',null).order('deleted_at',{ascending:false}).range(offset,offset+29) : query.is('deleted_at',null).order('created_at',{ascending:false}).limit(60);
-    const {data:rows,error} = await query;
-    if (error) throw failure('暂时没有读到共享相册，请检查网络后刷新');
-    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    let rows=[];
+    if (trashed) {
+      const result=await client.from('album_photos').select(photoFields).eq('album_id',config.album).eq('created_by',author).not('deleted_at','is',null).order('deleted_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+29);
+      if (result.error) throw failure('暂时没有读到回收站，请检查网络后刷新');
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      rows=result.data;
+    } else {
+      // Read until exhausted. A timestamp + UUID cursor also handles equal
+      // timestamps and concurrent inserts/deletes without shifting offsets.
+      let cursor=null;
+      while (true) {
+        let query=client.from('album_photos').select(photoFields).eq('album_id',config.album).is('deleted_at',null).order('created_at',{ascending:false}).order('id',{ascending:false});
+        if (cursor) {
+          const time=JSON.stringify(cursor.created_at);
+          query=query.or(`created_at.lt.${time},and(created_at.eq.${time},id.lt.${cursor.id})`);
+        }
+        const {data:page,error}=await query.range(0,199);
+        if (error) throw failure('暂时没有读到共享相册，请检查网络后刷新');
+        if (current!==revision) throw failure('登录状态已改变，请重新同步');
+        if (!page.length) break;
+        const last=page[page.length-1];
+        if (cursor && last.id===cursor.id && last.created_at===cursor.created_at) throw failure('相册读取暂未完成，请刷新后重试');
+        rows.push(...page);
+        cursor=last;
+      }
+    }
     if (!rows.length) return [];
-    const {data:urls,error:urlError} = await client.storage.from(config.bucket).createSignedUrls(rows.map(row=>row.object_path),3600);
-    if (urlError || urls.some(item=>item.error || !item.signedUrl)) throw failure('部分照片的访问链接未能生成，请重新同步');
-    if (current!==revision) throw failure('登录状态已改变，请重新同步');
-    const byPath=new Map(urls.map(item=>[item.path,item.signedUrl]));
-    return rows.map(row=>({id:row.id,src:byPath.get(row.object_path),title:row.title,category:row.category,date:row.photo_date || '',demo:false,objectPath:row.object_path,createdBy:row.created_by,canManage:row.created_by===author,deletedAt:row.deleted_at}));
+    const now=Date.now();
+    for (const [path,item] of signedPhotoUrls) if (item.expiresAt<=now) signedPhotoUrls.delete(path);
+    const missing=rows.filter(row=>!signedPhotoUrls.has(row.object_path));
+    for (let start=0;start<missing.length;start+=100) {
+      const paths=missing.slice(start,start+100).map(row=>row.object_path);
+      const {data:urls,error}=await client.storage.from(config.bucket).createSignedUrls(paths,3600);
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      if (error || !urls || paths.some(path=>!urls.some(item=>item.path===path && item.signedUrl && !item.error))) throw failure('部分照片的访问链接未能生成，请重新同步');
+      for (const item of urls) signedPhotoUrls.set(item.path,{url:item.signedUrl,expiresAt:Date.now()+55*60000});
+    }
+    return rows.map(row=>({id:row.id,src:signedPhotoUrls.get(row.object_path).url,title:row.title,category:row.category,date:row.photo_date || '',demo:false,objectPath:row.object_path,createdBy:row.created_by,canManage:row.created_by===author,deletedAt:row.deleted_at}));
   }
   async function listPhotos() { return readPhotos(); }
   async function listTrashedPhotos(offset = 0) { return readPhotos(true,Math.max(0,Math.trunc(offset)||0)); }

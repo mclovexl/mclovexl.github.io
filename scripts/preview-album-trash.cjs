@@ -1,7 +1,8 @@
 /* Local UI fixture only: no credentials, cloud requests, or real photo changes. */
 const fs=require('node:fs'), path=require('node:path'), http=require('node:http');
 const root=path.resolve(__dirname,'..'), dist=path.join(root,'dist');
-const fixtureCount=process.argv.includes('--pagination') ? 31 : 2;
+const uncapped=process.argv.includes('--uncapped');
+const fixtureCount=uncapped ? 76 : process.argv.includes('--pagination') ? 31 : 2;
 const mock=`(() => {
   let authorized=true, offline=false;
   const subscribers=new Set();
@@ -13,11 +14,13 @@ const mock=`(() => {
   for(let i=2;i<${fixtureCount};i++) photos.push({id:'30000000-0000-4000-8000-'+String(i).padStart(12,'0'),src:window.UNIVERSE_CONFIG.photos[i%6].src,title:'分页测试 '+String(i+1).padStart(2,'0'),category:['日常可爱','一起出发','心动限定'][i%3],date:'2026-06-24',demo:false,canManage:true,deletedAt:null});
   // Model an old exported setting; the current app must ignore this start hour.
   window.UNIVERSE_BOOTSTRAP={settings:{startTime:'19:30'}};
+  if(${uncapped}) photos[photos.length-1].deletedAt=new Date().toISOString();
   const check=()=>{if(offline)throw new Error('本地模拟：网络未连接，请稍后重试');if(!authorized)throw new Error('请先登录');};
   const copy=a=>a.map(p=>({...p}));
   window.UniverseCloud={enabled:true,state,init:async()=>{for(const fn of subscribers)fn(state());},subscribe(fn){subscribers.add(fn);return()=>subscribers.delete(fn);},
     listPhotos:async()=>{check();return copy(photos.filter(p=>!p.deletedAt));},
     listTrashedPhotos:async(offset=0)=>{check();return copy(photos.filter(p=>p.canManage&&p.deletedAt).slice(offset,offset+30));},
+    addPhotos:async items=>{check();photos.unshift(...items.map(p=>({...p,canManage:true,deletedAt:null})));return{committed:items.length};},
     movePhotoToTrash:async id=>{check();const p=photos.find(p=>p.id===id&&p.canManage);if(!p)throw new Error('没有权限');p.deletedAt=new Date().toISOString();},
     restorePhoto:async id=>{check();const p=photos.find(p=>p.id===id&&p.canManage);if(!p)throw new Error('没有权限');p.deletedAt=null;},
     logout:async()=>{authorized=false;for(const fn of subscribers)fn(state());}

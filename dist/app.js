@@ -258,8 +258,6 @@
     photoMutation=true; button.disabled=true; button.textContent='正在恢复……';
     let restored=false;
     try {
-      await syncCloudAlbum(true);
-      if (photos.filter(photo=>!photo.demo).length>=60) throw new Error('照片墙已收藏 60 张，请先移出一张，再恢复这张照片。');
       await cloud.restorePhoto(id);
       restored=true; cloudGeneration++; trashRequest++;
       trashPhotos=trashPhotos.filter(photo=>photo.id!==id); renderTrash();
@@ -341,7 +339,6 @@
     const files = [...$('#photo-files').files];
     if (!files.length || files.length > 12) { toast('每次请选择 1 到 12 张照片。'); return; }
     const previous = photos.filter(photo => !photo.demo);
-    if (previous.length + files.length > 60) { toast('相册最多收藏 60 张。可以先打包珍藏当前相册。'); return; }
     const submit = $('#photo-submit');
     submit.disabled = true;
     submit.textContent = '正在收藏美好……';
