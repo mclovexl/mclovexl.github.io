@@ -39,7 +39,7 @@ http.createServer((req,res)=>{
   if(!file.startsWith(dist+path.sep)){res.writeHead(403);res.end();return;}
   try{
     let content=fs.readFileSync(file);
-    if(file===path.join(dist,'index.html')) content=content.toString('utf8').replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'').replace('<script src="app.js" defer></script>','<script src="qa-fixture.js" defer></script><script src="app.js" defer></script>');
+    if(file===path.join(dist,'index.html')) content=content.toString('utf8').replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'').replace('<script src="app.js?v=23d7ae8c" defer></script>','<script src="qa-fixture.js" defer></script><script src="app.js?v=23d7ae8c" defer></script>');
     res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(content);
   }catch{res.writeHead(404);res.end();}
 }).listen(4178,'127.0.0.1',()=>console.log('Local-only album fixture: http://127.0.0.1:4178/'));

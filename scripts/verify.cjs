@@ -28,7 +28,7 @@ const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 assert.equal(new Set(ids).size, ids.length, 'Duplicate IDs');
 for (const match of html.matchAll(/(?:href|src)="([^"#]+)"/g)) {
-  const target = match[1];
+  const target = match[1].split(/[?#]/, 1)[0];
   if (!target.startsWith('data:') && !target.startsWith('http')) assert.ok(fs.existsSync(path.join(dist, target)), `Missing ${target}`);
 }
 const configContext = { window: {} };
