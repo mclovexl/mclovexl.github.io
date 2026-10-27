@@ -299,13 +299,13 @@
       transaction.onabort = () => reject(transaction.error || new Error('照片存储空间不足'));
     });
   }
-  const albumReady = cloudMode ? Promise.resolve() : photoStore('get').then(stored => {
+  if (!cloudMode) photoStore('get').then(stored => {
     if (Array.isArray(stored) && stored.length) { photos = stored; renderPhotos(); }
   }).catch(() => { /* 无可用存储时仍可浏览预置内容，上传时显示具体错误。 */ });
   $('#add-photo').addEventListener('click', () => {
     if (cloudMode && !cloud.state().authorized) { showAccount(); return; }
     $('#photo-form').reset();
-    $('#file-status').textContent = cloudMode ? '照片会保存到我们的私有云端相册。另一台设备登录后，打开或刷新就能看见。' : '照片保存在当前浏览器。点击「打包送给她」，可以把照片和网站一起带走。';
+    $('#file-status').textContent = cloudMode ? '照片会保存到我们的私有云端相册。另一台设备登录后，打开或刷新就能看见。' : '照片保存在当前浏览器。';
     openDialog('#upload-dialog');
   });
   $('#photo-files').addEventListener('change', event => {
@@ -791,53 +791,6 @@
     window.addEventListener('pagehide', () => { cancelAnimationFrame(frame); visibility.disconnect(); }, { once: true });
   }
 
-  const fileAsDataUrl = (blob) => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(reader.error); reader.readAsDataURL(blob); });
-  async function fetchText(path) { const response = await fetch(path); if (!response.ok) throw new Error(`读取网站文件失败：${path}`); return response.text(); }
-  async function inlineAsset(src) { if (src.startsWith('data:')) return src; const response = await fetch(src); if (!response.ok) throw new Error('素材打包失败，请稍后重试'); return fileAsDataUrl(await response.blob()); }
-  function scriptSafe(text) { return text.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--'); }
-  $('#export-gift').addEventListener('click', async () => {
-    const button = $('#export-gift');
-    button.disabled = true;
-    button.textContent = '正在打包小宇宙……';
-    toast('正在把星空、照片和故事装进同一个网页。♡');
-    try {
-      await albumReady;
-      if (cloudMode && cloud.state().authorized) await syncCloudAlbum(true);
-      let html, css, config, core, application;
-      if (window.__UNIVERSE_OFFLINE_SOURCE__) ({ html, css, config, core, application } = window.__UNIVERSE_OFFLINE_SOURCE__);
-      else {
-        [html, css, config, core, application] = await Promise.all(['index.html', 'styles.css', 'config.js', 'time.js', 'app.js'].map(fetchText));
-        css += '\n' + await fetchText('album.css');
-        html = html.replace('<link rel="stylesheet" href="album.css">','');
-      }
-      const exportedPhotos = await Promise.all(photos.map(async photo => ({ ...photo, src: await inlineAsset(photo.src) })));
-      let exportedCss = css;
-      const background = /url\(['"]?(assets\/universe-hero\.webp)['"]?\)/;
-      if (background.test(css)) exportedCss = css.replace(background, `url('${await inlineAsset('assets/universe-hero.webp')}')`);
-      const data = { settings, stories: customStories, wishes, photos: exportedPhotos };
-      html=html.replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'');
-      const offlineSource = { html, css: exportedCss, config, core, application };
-      const musicData = await inlineAsset(backgroundMusic.getAttribute('src'));
-      html = html.replace('src="assets/our-song.mp3"', () => `src="${musicData}"`);
-      html = html.replace('<link rel="stylesheet" href="styles.css">', () => `<style>${exportedCss}</style>`);
-      html = html.replace('<script src="config.js" defer></script>', () => `<script>${scriptSafe(config)}</script>`);
-      html = html.replace('<script src="shared-data.js" defer></script>', () => `<script>window.UNIVERSE_BOOTSTRAP=${scriptSafe(JSON.stringify(data))};window.__UNIVERSE_OFFLINE_SOURCE__=${scriptSafe(JSON.stringify(offlineSource))};</script>`);
-      html = html.replace('<script src="time.js" defer></script>', () => `<script>${scriptSafe(core)}</script>`);
-      html = html.replace('<script src="app.js" defer></script>', () => `<script>document.addEventListener('DOMContentLoaded',function(){${scriptSafe(application)}\n});</script>`);
-      html = html.replace(/<title>.*?<\/title>/, () => `<title>你就是我的宇宙 · ${settings.me.replace(/[<>&]/g, '')} × ${settings.her.replace(/[<>&]/g, '')}</title>`);
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob), anchor = node('a');
-      anchor.href = url;
-      anchor.download = `你就是我的宇宙-${settings.me}-${settings.her}.html`.replace(/[\\/:*?"<>|]/g, '-');
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-      toast('小宇宙已打包下载，把这个 HTML 文件送给她吧。♡');
-    } catch (err) { toast(`打包未完成：${err.message}。请通过网站链接打开后重试。`); }
-    finally { button.disabled = false; button.textContent = '打包送给她 ↗'; }
-  });
-
   renderSettings();
   renderPhotos();
   renderWishes();
@@ -850,5 +803,5 @@
     setInterval(() => { if(!document.hidden && cloud.state().authorized) syncCloudAlbum(true).catch(()=>{}); },30000);
     document.addEventListener('visibilitychange',() => { if(!document.hidden && cloud.state().authorized) syncCloudAlbum(true).catch(()=>{}); });
   }
-  if (location.protocol === 'file:' && !window.__UNIVERSE_OFFLINE_SOURCE__) toast('双击「打开我们的小宇宙.cmd」可完整预览并打包网站。');
+  if (location.protocol === 'file:' && !window.__UNIVERSE_OFFLINE_SOURCE__) toast('双击「打开我们的小宇宙.cmd」可完整预览网站。');
 })();
