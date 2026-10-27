@@ -106,19 +106,19 @@
   }
   $('#customize').addEventListener('click', () => {
     const form = $('#settings-form');
-    for (const key of ['me', 'her', 'startDate', 'promise', 'letter']) form.elements.namedItem(key).value = settings[key];
+    form.elements.namedItem('letter').value = settings.letter;
     openDialog('#settings-dialog');
   });
   $('#settings-form').addEventListener('submit', event => {
     event.preventDefault();
-    const next = Object.fromEntries(new FormData(event.currentTarget));
-    for (const key in next) next[key] = next[key].trim();
-    if (Object.values(next).some(value => !value)) { toast('填上我们的小细节再保存吧。'); return; }
-    try { Time.dateParts(next.startDate); save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
+    const letter = event.currentTarget.elements.namedItem('letter').value.trim();
+    if (!letter) { toast('写下想对她说的话，再保存吧。'); return; }
+    const next = { ...settings, letter };
+    try { save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
     settings = next;
     renderSettings();
     $('#settings-dialog').close();
-    toast('专属于我们的宇宙，已经更新。♡');
+    toast('这封情书，已经替你好好收藏。♡');
     celebrate(15);
   });
 
@@ -738,45 +738,31 @@
   }, { rootMargin: '-10% 0px -60% 0px' });
   ['home', 'memories', 'story', 'play'].forEach(id => observer.observe(document.getElementById(id)));
 
-  let audioContext, musicTimer, noteIndex = 0, musicPlaying = false;
-  const melody = [523.25, 659.25, 783.99, 987.77, 880, 783.99, 659.25, 587.33, 523.25, 659.25, 783.99, 1046.5, 987.77, 783.99, 659.25, 587.33];
-  function playNote() {
-    if (!audioContext || !musicPlaying) return;
-    const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = melody[noteIndex++ % melody.length];
-    const now = audioContext.currentTime;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(.035, now + .03);
-    gain.gain.exponentialRampToValueAtTime(.0001, now + 1.8);
-    oscillator.connect(gain).connect(audioContext.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 1.9);
-    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+  const backgroundMusic = $('#background-music');
+  const musicButton = $('#music-toggle');
+  backgroundMusic.volume = .45;
+  function renderMusicState() {
+    const playing = !backgroundMusic.paused && !backgroundMusic.ended;
+    musicButton.classList.toggle('playing', playing);
+    musicButton.setAttribute('aria-pressed', String(playing));
+    musicButton.setAttribute('aria-label', `${playing ? '暂停' : '播放'}《我曾这样寂寞生活》`);
+    musicButton.title = `${playing ? '暂停' : '播放'}《我曾这样寂寞生活》`;
   }
-  async function pauseMusic() {
-    musicPlaying = false;
-    clearInterval(musicTimer);
-    $('#music-toggle').classList.remove('playing');
-    $('#music-toggle').setAttribute('aria-pressed', 'false');
-    $('#music-toggle').setAttribute('aria-label', '播放星空旋律');
-    if (audioContext?.state === 'running') await audioContext.suspend();
-  }
+  function pauseMusic() { backgroundMusic.pause(); renderMusicState(); }
   $('#music-toggle').addEventListener('click', async () => {
+    if (!backgroundMusic.paused) { pauseMusic(); return; }
     try {
-      if (musicPlaying) { await pauseMusic(); return; }
-      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
-      await audioContext.resume();
-      musicPlaying = true;
-      $('#music-toggle').classList.add('playing');
-      $('#music-toggle').setAttribute('aria-pressed', 'true');
-      $('#music-toggle').setAttribute('aria-label', '暂停星空旋律');
-      playNote();
-      musicTimer = setInterval(playNote, 650);
-      toast('星空旋律已开启。再点一次音符就能暂停。♫');
-    } catch { await pauseMusic(); toast('当前浏览器暂时无法播放旋律。'); }
+      await backgroundMusic.play();
+    } catch (err) {
+      if (err.name !== 'AbortError') toast('音乐暂时没有播放成功，请检查网络后再点一次。');
+      renderMusicState();
+    }
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && musicPlaying) pauseMusic(); });
+  for (const event of ['play','pause','ended']) backgroundMusic.addEventListener(event, renderMusicState);
+  backgroundMusic.addEventListener('error', pauseMusic);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseMusic(); });
+  window.addEventListener('pagehide', pauseMusic);
+  renderMusicState();
 
   function initStars() {
     const canvas = $('#starfield'), context = canvas.getContext('2d');
@@ -807,7 +793,7 @@
 
   const fileAsDataUrl = (blob) => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(reader.error); reader.readAsDataURL(blob); });
   async function fetchText(path) { const response = await fetch(path); if (!response.ok) throw new Error(`读取网站文件失败：${path}`); return response.text(); }
-  async function inlineAsset(src) { if (src.startsWith('data:')) return src; const response = await fetch(src); if (!response.ok) throw new Error('图片打包失败，请稍后重试'); return fileAsDataUrl(await response.blob()); }
+  async function inlineAsset(src) { if (src.startsWith('data:')) return src; const response = await fetch(src); if (!response.ok) throw new Error('素材打包失败，请稍后重试'); return fileAsDataUrl(await response.blob()); }
   function scriptSafe(text) { return text.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--'); }
   $('#export-gift').addEventListener('click', async () => {
     const button = $('#export-gift');
@@ -831,6 +817,8 @@
       const data = { settings, stories: customStories, wishes, photos: exportedPhotos };
       html=html.replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'');
       const offlineSource = { html, css: exportedCss, config, core, application };
+      const musicData = await inlineAsset(backgroundMusic.getAttribute('src'));
+      html = html.replace('src="assets/our-song.mp3"', () => `src="${musicData}"`);
       html = html.replace('<link rel="stylesheet" href="styles.css">', () => `<style>${exportedCss}</style>`);
       html = html.replace('<script src="config.js" defer></script>', () => `<script>${scriptSafe(config)}</script>`);
       html = html.replace('<script src="shared-data.js" defer></script>', () => `<script>window.UNIVERSE_BOOTSTRAP=${scriptSafe(JSON.stringify(data))};window.__UNIVERSE_OFFLINE_SOURCE__=${scriptSafe(JSON.stringify(offlineSource))};</script>`);

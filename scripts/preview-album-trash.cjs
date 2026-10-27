@@ -31,7 +31,7 @@ const mock=`(() => {
     const label=document.createElement('label'),toggle=document.createElement('input');toggle.type='checkbox';toggle.addEventListener('change',()=>{offline=toggle.checked;});label.append(toggle,'模拟断网');bar.append(label);document.body.append(bar);
   });
 })();`;
-const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg'};
+const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.mp3':'audio/mpeg'};
 http.createServer((req,res)=>{
   const pathname=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
   if(pathname==='/qa-fixture.js'){res.writeHead(200,{'Content-Type':mime['.js']});res.end(mock);return;}

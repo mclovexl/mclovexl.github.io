@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const dist = path.join(root, 'dist');
 const read = file => fs.readFileSync(path.join(dist, file), 'utf8');
-const dataUrl = file => `data:${file.endsWith('.webp') ? 'image/webp' : file.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${fs.readFileSync(path.join(dist, file)).toString('base64')}`;
+const dataUrl = file => `data:${file.endsWith('.mp3') ? 'audio/mpeg' : file.endsWith('.webp') ? 'image/webp' : file.endsWith('.png') ? 'image/png' : 'image/jpeg'};base64,${fs.readFileSync(path.join(dist, file)).toString('base64')}`;
 const safe = text => text.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
 const config = read('config.js');
 const context = { window: {} };
@@ -18,6 +18,7 @@ source.html = source.html.replace('<link rel="stylesheet" href="album.css">','')
 source.html=source.html.replace(/\s*<script src="(?:cloud-config\.js|cloud\.js|vendor\/supabase\.js)" defer><\/script>/g,'');
 const bootstrap = { settings, photos: base.photos.map(photo => ({ ...photo, src: dataUrl(photo.src) })) };
 let html = source.html;
+html = html.replace('src="assets/our-song.mp3"', () => `src="${dataUrl('assets/our-song.mp3')}"`);
 html = html.replace('<link rel="stylesheet" href="styles.css">', () => `<style>${source.css}</style>`);
 html = html.replace('<script src="config.js" defer></script>', () => `<script>${safe(config)}</script>`);
 html = html.replace('<script src="shared-data.js" defer></script>', () => `<script>window.UNIVERSE_BOOTSTRAP=${safe(JSON.stringify(bootstrap))};window.__UNIVERSE_OFFLINE_SOURCE__=${safe(JSON.stringify(source))};</script>`);

@@ -29,4 +29,8 @@
 | memory-flowers.jpg | https://images.unsplash.com/photo-1490750967868-88aa4486c946 |
 | memory-stars.jpg | https://images.unsplash.com/photo-1462331940025-496dfbfc7564 |
 
-星光、轨道、信封、礼物盒和界面装饰由项目原生 Canvas/CSS/SVG 绘制。背景旋律为代码合成的简单原创音序，无第三方音乐音源。
+星光、轨道、信封、礼物盒和界面装饰由项目原生 Canvas/CSS/SVG 绘制。
+
+## 背景音乐
+
+用户提供的《我曾这样寂寞生活 - 饭碗的彼岸.mp3》，保存为 `dist/assets/our-song.mp3`，使用原文件，未转码。文件大小 4,219,342 字节，SHA-256 为 `5a09de03c847df98487f3fc5e2fb7422b5c2acb2aae85cfd060cc84e5fd6125b`。点击页首音乐按钮播放或暂停，离线打包也包含该音乐。
