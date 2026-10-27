@@ -31,7 +31,7 @@
   if (!Array.isArray(wishes)) wishes = [];
   let photos = shared.photos?.length ? shared.photos : base.photos;
   let currentFilter = 'all';
-  const photosPerPage = 10;
+  const photosPerPage = 12;
   let currentPhotoPage = 1;
   let filteredPhotos = photos;
   let lightboxIndex = 0;
