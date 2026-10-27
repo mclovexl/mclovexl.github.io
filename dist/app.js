@@ -500,7 +500,7 @@
         letterHistory=next.history;
         memoriesReady=true;
         renderSettings(); renderWishes(); renderLetterHistory();
-        $('#memory-sync-status').textContent='你们的故事、愿望和情书已同步 ♡';
+        $('#memory-sync-status').textContent='我们的故事';
       } catch (err) {
         if (generation===cloudGeneration) {
           $('#memory-sync-status').textContent=err.message || '共同回忆同步失败，请稍后重试。';
