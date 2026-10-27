@@ -39,8 +39,17 @@
     const targetDate = new Date(target).toISOString().slice(0, 10);
     return { days: Math.round((target - today) / DAY), date: targetDate, years: year - startYear, today: target === today, futureStart: year === startYear };
   }
+  function hundredDays(now, startDate) {
+    // As with the main clock, the start date is day 1 in Beijing.
+    const startDay = Math.floor((atShanghaiMidnight(startDate) + OFFSET) / DAY);
+    const today = Math.floor((now + OFFSET) / DAY);
+    const elapsed = today - startDay;
+    const milestone = elapsed < 0 ? 100 : Math.max(100, Math.ceil((elapsed + 1) / 100) * 100);
+    const target = startDay + milestone - 1;
+    return { days: target - today, date: new Date(target * DAY).toISOString().slice(0, 10), milestone, today: target === today };
+  }
   function todayShanghai(now = Date.now()) { return new Date(now + OFFSET).toISOString().slice(0, 10); }
-  const api = { dateParts, timeParts, atShanghaiMidnight, atShanghaiTime, clock, anniversary, todayShanghai };
+  const api = { dateParts, timeParts, atShanghaiMidnight, atShanghaiTime, clock, anniversary, hundredDays, todayShanghai };
   root.UniverseTime = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

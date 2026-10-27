@@ -22,7 +22,7 @@ html = html.replace('src="assets/our-song.mp3"', () => `src="${dataUrl('assets/o
 html = html.replace('<link rel="stylesheet" href="styles.css">', () => `<style>${source.css}</style>`);
 html = html.replace('<script src="config.js" defer></script>', () => `<script>${safe(config)}</script>`);
 html = html.replace('<script src="shared-data.js" defer></script>', () => `<script>window.UNIVERSE_BOOTSTRAP=${safe(JSON.stringify(bootstrap))};window.__UNIVERSE_OFFLINE_SOURCE__=${safe(JSON.stringify(source))};</script>`);
-html = html.replace('<script src="time.js" defer></script>', () => `<script>${safe(source.core)}</script>`);
+html = html.replace(/<script src="time\.js(?:\?[^"]*)?" defer><\/script>/, () => `<script>${safe(source.core)}</script>`);
 html = html.replace(/<script src="app\.js(?:\?[^"]*)?" defer><\/script>/, () => `<script>document.addEventListener('DOMContentLoaded',function(){${safe(source.application)}\n});</script>`);
 const outputDir = path.join(root, 'delivery');
 fs.mkdirSync(outputDir, { recursive: true });

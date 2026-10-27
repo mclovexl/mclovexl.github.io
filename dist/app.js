@@ -46,7 +46,6 @@
   let syncInFlight = null;
   let memoriesReady = !cloudMode, memoriesMigratedFor = null, memoryInFlight = null;
   let memoryMutation = 0, memoryWriting = false, sharedLetterRevision = null, letterEditingRevision = null, letterHistory = [];
-  let legacyFingerprint = '', legacyWishDifferences = [];
   let pendingDelete = null, photoMutation = false;
   let trashPhotos = [], trashRequest = 0, trashHasMore = false;
 
@@ -110,6 +109,10 @@
     $('#anniversary-days').textContent = next.days;
     $('#anniversary-date').textContent = `${dotted(next.date)} · ${next.today ? '今天也要好好相爱' : '继续相爱'}`;
     $('#anniversary-title').textContent = next.today ? (next.years > 0 ? `今天是我们的第 ${next.years} 个周年 ♡` : '今天，我们的故事开始了 ♡') : next.futureStart ? '距离我们的故事开始' : '距离我们的下一个周年';
+    const hundred=Time.hundredDays(now,settings.startDate);
+    $('#hundred-days').textContent=hundred.days;
+    $('#hundred-date').textContent=`${dotted(hundred.date)} · 第 ${hundred.milestone} 天`;
+    $('#hundred-title').textContent=hundred.today ? `今天是我们在一起的第 ${hundred.milestone} 天 ♡` : '距离我们的下一个百天';
   }
   function queueMemorySync() {
     if (cloudMode) setTimeout(() => syncSharedMemories(true).catch(()=>{}),0);
@@ -142,20 +145,6 @@
       row.append(use); list.append(row);
     });
   }
-  function renderLegacyWishes() {
-    const section=$('#legacy-wishes'), list=$('#legacy-wishes-list');
-    list.replaceChildren();
-    const reviewed=safeRead('legacy-wishes-reviewed','')===legacyFingerprint;
-    const conflicts=legacyWishDifferences || [];
-    section.hidden=!cloudMode || !cloud.state().authorized || reviewed || !conflicts.length;
-    if (section.hidden) { section.open=false; return; }
-    conflicts.forEach(w=>list.append(node('li','',`${w.text}：本机原来${w.done?'已实现':'待实现'}`)));
-  }
-  $('#legacy-wishes-reviewed').addEventListener('click',()=>{
-    try { save('legacy-wishes-reviewed',legacyFingerprint); }
-    catch { /* The original backup remains in the private cloud and browser. */ }
-    $('#legacy-wishes').hidden=true;
-  });
   $('#retry-memories').addEventListener('click',()=>syncSharedMemories().catch(()=>{}));
   $('#customize').addEventListener('click', () => {
     if (!requireMemories()) return;
@@ -492,9 +481,6 @@
           const migrated=await cloud.migrateSharedMemories(legacy,defaultWishes,base.letter);
           if (generation!==cloudGeneration || !cloud.state().authorized) return;
           memoriesMigratedFor=userId;
-          legacyFingerprint=migrated.fingerprint;
-          const review=safeRead('shared-migration-review',{});
-          legacyWishDifferences=review.fingerprint===legacyFingerprint && Array.isArray(review.wishes) ? review.wishes : null;
           if (migrated.skipped) toast('部分本机旧内容格式特殊，已安全备份，请稍后处理。');
         }
         let next=await cloud.listSharedMemories();
@@ -506,13 +492,6 @@
           if (generation!==cloudGeneration || !cloud.state().authorized) return;
           if (mutation!==memoryMutation || memoryWriting) { if (!memoryWriting) queueMemorySync(); return; }
         }
-        if (legacyWishDifferences===null) {
-          const old=Array.isArray(legacy.wishes)?legacy.wishes:[];
-          legacyWishDifferences=old.filter(w=>w && next.wishes.some(current=>current.id===w.id &&
-            (current.text!==w.text || current.done!==!!w.done)));
-          try { save('shared-migration-review',{fingerprint:legacyFingerprint,wishes:legacyWishDifferences}); }
-          catch { /* The private backup remains available even if local storage is full. */ }
-        }
         customStories=next.stories;
         const order=new Map(defaultWishes.map((wish,index)=>[wish.id,index]));
         wishes=next.wishes.sort((a,b)=>(order.get(a.id) ?? defaultWishes.length)-(order.get(b.id) ?? defaultWishes.length));
@@ -520,7 +499,7 @@
         sharedLetterRevision=next.letter.revision;
         letterHistory=next.history;
         memoriesReady=true;
-        renderSettings(); renderWishes(); renderLetterHistory(); renderLegacyWishes();
+        renderSettings(); renderWishes(); renderLetterHistory();
         $('#memory-sync-status').textContent='你们的故事、愿望和情书已同步 ♡';
       } catch (err) {
         if (generation===cloudGeneration) {
@@ -543,10 +522,10 @@
     $('#cloud-account').textContent=state.authorized ? '共享相册 ♡' : '登录相册';
     if (!state.authorized) {
       memoriesReady=false; memoriesMigratedFor=null; memoryMutation++;
-      sharedLetterRevision=null; letterEditingRevision=null; letterHistory=[]; legacyFingerprint=''; legacyWishDifferences=[];
+      sharedLetterRevision=null; letterEditingRevision=null; letterHistory=[];
       settings={...settings,letter:base.letter};
       customStories=[]; wishes=defaultWishes.map(w=>({...w}));
-      renderSettings(); renderWishes(); renderLetterHistory(); renderLegacyWishes();
+      renderSettings(); renderWishes(); renderLetterHistory();
       $('#memory-sync-status').textContent='登录共享相册后，故事、愿望和情书会同步。';
       $('#retry-memories').hidden=true;
       for (const id of ['settings-dialog','story-dialog','wish-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();

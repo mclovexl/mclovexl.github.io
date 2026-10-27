@@ -8,14 +8,14 @@
   <title>你就是我的宇宙 · 赵管家 × 黄少爷</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2310131c'/%3E%3Cpath d='M32 47 15 30C3 15 26 7 32 23 38 7 61 15 49 30Z' fill='%23efb6a9'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="album.css?v=shared20261027">
+  <link rel="stylesheet" href="album.css?v=hundred20261027">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
-  <script src="time.js" defer></script>
+  <script src="time.js?v=hundred20261027" defer></script>
   <script src="cloud-config.js" defer></script>
   <script src="vendor/supabase.js" defer></script>
   <script src="cloud.js?v=shared20261027" defer></script>
-  <script src="app.js?v=shared20261027" defer></script>
+  <script src="app.js?v=hundred20261027" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到正文</a>
@@ -51,7 +51,7 @@
     <section class="time-section" id="time" aria-labelledby="time-title"><div class="wrap time-layout">
       <div class="time-intro"><p class="eyebrow">EVERY SECOND, WITH YOU</p><h2 id="time-title">爱你每天<br>都在多一点</h2><p>从 <span data-start-chinese>26 年 6 月 24 日</span> 开始</p></div>
       <div class="love-clock" aria-label="相恋时长"><p id="clock-intro">我们在一起的第</p><div class="clock-digits"><span><b id="love-days">—</b><small>天 / DAYS</small></span><i>:</i><span><b id="love-hours">00</b><small>时 / HOURS</small></span><i>:</i><span><b id="love-minutes">00</b><small>分 / MINS</small></span><i>:</i><span><b id="love-seconds">00</b><small>秒 / SECS</small></span></div><p class="clock-promise">每一秒，都在走向我们的永远 <span>♡</span></p></div>
-      <div class="anniversary"><span class="anniversary-icon">✧</span><p id="anniversary-title">距离我们的下一个周年</p><div><b id="anniversary-days">—</b><span>天</span><span class="anniversary-arrow">↗</span></div><small id="anniversary-date">2027.06.24 · 继续相爱</small></div>
+      <div class="milestone-list"><div class="anniversary"><span class="anniversary-icon">✧</span><p id="anniversary-title">距离我们的下一个周年</p><div><b id="anniversary-days">—</b><span>天</span><span class="anniversary-arrow">↗</span></div><small id="anniversary-date">2027.06.24 · 继续相爱</small></div><div class="anniversary hundred-anniversary"><span class="anniversary-icon">✧</span><p id="hundred-title">距离我们的下一个百天</p><div><b id="hundred-days">—</b><span>天</span><span class="anniversary-arrow">↗</span></div><small id="hundred-date"></small></div></div>
     </div></section>
 
     <section class="memories-section section-light" id="memories" aria-labelledby="memories-title"><div class="wrap">
@@ -71,9 +71,9 @@
       <button class="game-card date-card" id="open-date" type="button"><span class="game-number">SURPRISE / 03</span><div class="date-preview" aria-hidden="true"><span class="gift-ribbon"></span><span class="gift-box">♡</span><i>✧</i></div><div class="game-card-bottom"><div><h3>约会盲盒</h3><p>把下一次浪漫，交给一点点惊喜。</p></div><span class="game-arrow">↗</span></div></button></div>
     </div></section>
 
-    <section class="wish-section" id="wishes" aria-labelledby="wish-title"><div class="wrap wish-layout"><div><p class="eyebrow"><span>04</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>想和你做的事，数也数不完。<br>先把它们放进星空里，一件一件实现。</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button><details id="legacy-wishes" class="legacy-wishes" hidden><summary>查看本机原有愿望状态</summary><ul id="legacy-wishes-list"></ul><button type="button" id="legacy-wishes-reviewed">已处理</button></details></div><div class="wish-sky" id="wish-sky" aria-label="我们的愿望星空"></div></div></section>
+    <section class="wish-section" id="wishes" aria-labelledby="wish-title"><div class="wrap wish-layout"><div><p class="eyebrow"><span>04</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>想和你做的事，数也数不完。<br>先把它们放进星空里，一件一件实现。</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button></div><div class="wish-sky" id="wish-sky" aria-label="我们的愿望星空"></div></div></section>
 
-    <section class="letter-section" id="letter" aria-labelledby="letter-title"><div class="letter-decoration" aria-hidden="true">♡</div><div class="wrap letter-wrap"><p class="eyebrow">A LITTLE LETTER, A LOT OF LOVE</p><h2 id="letter-title">写给<span data-her>黄少爷</span>的<br><em>一封小小情书。</em></h2><p class="letter-lead">有些话，想认真地说给你听。</p><button class="envelope-button" id="open-letter" type="button" aria-expanded="false" aria-controls="letter-paper"><span class="envelope-shape"><i></i><b>♡</b></span><span class="envelope-label">拆开这封信 <span>↗</span></span></button><article class="letter-paper" id="letter-paper" hidden><span class="paper-star" aria-hidden="true">✧</span><div id="letter-body"></div><p class="letter-signature">永远偏爱你的，<span data-me>赵管家</span><small>从 <span data-start>2026.06.24</span> 到很久很久以后</small></p></article><p class="forever-promise" data-promise>我们会一直永远的在一起</p><span class="forever-label">YOU ARE MY ALWAYS & FOREVER.</span></div></section>
+    <section class="letter-section" id="letter" aria-labelledby="letter-title"><div class="letter-decoration" aria-hidden="true">♡</div><div class="wrap letter-wrap"><p class="eyebrow">A LITTLE LETTER, A LOT OF LOVE</p><h2 id="letter-title">写给<span>小兰</span>的<br><em>一封小小情书。</em></h2><p class="letter-lead">有些话，想认真地说给你听。</p><button class="envelope-button" id="open-letter" type="button" aria-expanded="false" aria-controls="letter-paper"><span class="envelope-shape"><i></i><b>♡</b></span><span class="envelope-label">拆开这封信 <span>↗</span></span></button><article class="letter-paper" id="letter-paper" hidden><span class="paper-star" aria-hidden="true">✧</span><div id="letter-body"></div><p class="letter-signature">永远偏爱你的，<span data-me>赵管家</span><small>从 <span data-start>2026.06.24</span> 到很久很久以后</small></p></article><p class="forever-promise" data-promise>我们会一直永远的在一起</p><span class="forever-label">YOU ARE MY ALWAYS & FOREVER.</span></div></section>
   </main>
   <footer class="site-footer wrap"><a class="brand" href="#home"><span class="brand-symbol">✳</span><span>你就是我的宇宙<small>OUR LITTLE UNIVERSE</small></span></a><p>由 <span data-me>赵管家</span> 为 <span data-her>黄少爷</span>，用偏爱建造。<br><span>始于 <span data-start>2026.06.24</span> · 未完待续</span></p></footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div><div id="celebration" aria-hidden="true"></div>
