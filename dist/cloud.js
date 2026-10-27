@@ -146,6 +146,152 @@
       return {committed};
     } catch (error) { error.committed=committed; throw error; }
   }
+  // Stories, wishes and letters use the same two-person membership as photos.
+  // Read by a stable primary-key cursor so the Data API's row cap does not
+  // silently hide older memories.
+  async function readSharedRows(table, fields) {
+    requireAccess();
+    const current=revision;
+    const rows=[];
+    let cursor=null;
+    while (true) {
+      let query=client.from(table).select(fields).order('id',{ascending:true}).range(0,199);
+      if (cursor) query=query.gt('id',cursor);
+      const {data,error}=await query;
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      if (error) throw failure('暂时无法读取共同回忆，请检查网络后重试');
+      if (!data.length) break;
+      if (cursor===data[data.length-1].id) throw failure('共同回忆尚未读取完整，请重试');
+      rows.push(...data); cursor=data[data.length-1].id;
+    }
+    return rows;
+  }
+  async function sharedUpsert(table, rows) {
+    requireAccess();
+    const current=revision;
+    for (let start=0;start<rows.length;start+=100) {
+      const {error}=await client.from(table).upsert(rows.slice(start,start+100),{onConflict:'id',ignoreDuplicates:true});
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      if (error) throw failure('旧回忆还没有全部同步，请检查网络后重试');
+    }
+  }
+  async function textHash(text) {
+    const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function stableStoryId(story) {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(story.id || '')) return story.id;
+    const h=await textHash(JSON.stringify(story));
+    return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20,32)}`;
+  }
+  async function migrateSharedMemories(legacy, defaultWishes, defaultLetter) {
+    requireAccess();
+    const current=revision, author=session.user.id;
+    const snapshot={stories:legacy.stories,wishes:legacy.wishes,letter:legacy.letter};
+    const fingerprint=await textHash(JSON.stringify(snapshot));
+    const hasLegacy=(Array.isArray(snapshot.stories)&&snapshot.stories.length>0)
+      || Array.isArray(snapshot.wishes) || !!snapshot.letter;
+    if (hasLegacy) {
+      await sharedUpsert('universe_legacy_backups',[{id:fingerprint,snapshot,created_by:author}]);
+    }
+    const validStories=[];
+    let skipped=0;
+    for (const story of Array.isArray(legacy.stories)?legacy.stories:[]) {
+      if (!story || typeof story.title!=='string' || typeof story.body!=='string' ||
+          !story.title.trim() || !story.body.trim() || story.title.trim().length>60 || story.body.trim().length>2000) { skipped++; continue; }
+      try { window.UniverseTime.dateParts(story.date); } catch { skipped++; continue; }
+      validStories.push({id:await stableStoryId(story),story_date:story.date,title:story.title.trim(),body:story.body.trim(),created_by:author});
+    }
+    await sharedUpsert('universe_stories',validStories);
+    const oldWishes=Array.isArray(legacy.wishes)?legacy.wishes:[];
+    const seeds=[];
+    const seen=new Set();
+    for (const wish of [...oldWishes,...defaultWishes]) {
+      if (!wish || !/^[a-zA-Z0-9-]{1,80}$/.test(wish.id || '') || typeof wish.text!=='string' ||
+          !wish.text.trim() || wish.text.trim().length>40) { skipped++; continue; }
+      if (seen.has(wish.id)) continue;
+      seen.add(wish.id);
+      seeds.push({id:wish.id,wish_text:wish.text.trim(),done:!!wish.done,source:oldWishes.includes(wish)?'legacy':'seed',created_by:author,updated_by:author});
+    }
+    await sharedUpsert('universe_wishes',seeds);
+    for (const wish of seeds.filter(w=>w.source==='legacy')) {
+      const {error}=await client.from('universe_wishes')
+        .update({done:wish.done,source:'legacy',updated_by:author,updated_at:new Date().toISOString()})
+        .eq('id',wish.id).eq('wish_text',wish.wish_text).eq('source','seed').select('id').maybeSingle();
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      if (error) throw failure('旧愿望状态暂时无法同步，请稍后重试');
+    }
+    const originalLetter=typeof legacy.letter==='string' && legacy.letter.trim() && legacy.letter.trim().length<=6000 ? legacy.letter.trim() : '';
+    if (legacy.letter && !originalLetter) skipped++;
+    if (originalLetter && originalLetter!==defaultLetter) {
+      await sharedUpsert('universe_letter_history',[{id:'legacy-'+await textHash(originalLetter),body:originalLetter,source:'legacy',created_by:author}]);
+    }
+    await sharedUpsert('universe_letter',[{id:'shared',body:originalLetter || defaultLetter,source:originalLetter?'legacy':'seed',revision:crypto.randomUUID(),updated_by:author}]);
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    return {skipped,fingerprint};
+  }
+  async function listSharedMemories() {
+    requireAccess();
+    const current=revision;
+    const [stories,wishes,letters,history]=await Promise.all([
+      readSharedRows('universe_stories','id,story_date,title,body'),
+      readSharedRows('universe_wishes','id,wish_text,done'),
+      readSharedRows('universe_letter','id,body,revision,source'),
+      readSharedRows('universe_letter_history','id,body,source,created_at')
+    ]);
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (letters.length!==1) throw failure('共同情书尚未准备好，请稍后重试');
+    return {stories:stories.map(s=>({id:s.id,date:s.story_date,title:s.title,body:s.body})),
+      wishes:wishes.map(w=>({id:w.id,text:w.wish_text,done:w.done})),letter:letters[0],
+      history:history.sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id))};
+  }
+  async function addSharedStory(story) {
+    requireAccess();
+    const current=revision, author=session.user.id;
+    await sharedUpsert('universe_stories',[{id:story.id,story_date:story.date,title:story.title,body:story.body,created_by:author}]);
+    const {data,error}=await client.from('universe_stories').select('id,story_date,title,body').eq('id',story.id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error || !data || data.story_date!==story.date || data.title!==story.title || data.body!==story.body)
+      throw failure('这段故事与云端已有内容不同，请重新打开后保存');
+  }
+  async function addSharedWish(wish) {
+    requireAccess();
+    const current=revision, author=session.user.id;
+    await sharedUpsert('universe_wishes',[{id:wish.id,wish_text:wish.text,done:false,source:'edit',created_by:author,updated_by:author}]);
+    const {data,error}=await client.from('universe_wishes').select('id,wish_text').eq('id',wish.id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error || !data || data.wish_text!==wish.text) throw failure('这个愿望与云端已有内容不同，请重新打开后保存');
+  }
+  async function setSharedWish(id,done) {
+    requireAccess();
+    const current=revision;
+    const {data,error}=await client.from('universe_wishes').update({done,source:'edit',updated_by:session.user.id,updated_at:new Date().toISOString()}).eq('id',id).select('id').maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error || !data) throw failure('愿望状态未保存，请检查网络后重试');
+  }
+  async function saveSharedLetter(body,expectedRevision) {
+    requireAccess();
+    const current=revision, author=session.user.id, nextRevision=crypto.randomUUID();
+    // Save the submitted text first; a competing edit never destroys either version.
+    await sharedUpsert('universe_letter_history',[{id:nextRevision,body,source:'edit',created_by:author}]);
+    const {data,error}=await client.from('universe_letter')
+      .update({body,source:'edit',revision:nextRevision,updated_by:author,updated_at:new Date().toISOString()})
+      .eq('id','shared').eq('revision',expectedRevision).select('id,body,revision,source').maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('情书未保存，请检查网络后重试');
+    if (!data) { const conflict=failure('另一台设备刚修改了情书。你的文字已保存在历史情书，请重新打开后选择使用。'); conflict.name='LetterConflict'; throw conflict; }
+    return data;
+  }
+  async function promoteLegacyLetter(body,expectedRevision) {
+    requireAccess();
+    const current=revision;
+    const {data,error}=await client.from('universe_letter')
+      .update({body,source:'legacy',revision:crypto.randomUUID(),updated_by:session.user.id,updated_at:new Date().toISOString()})
+      .eq('id','shared').eq('source','seed').eq('revision',expectedRevision).select('id,body,revision,source').maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('旧情书暂时无法同步，请稍后重试');
+    return data;
+  }
   async function inviteRequest(action,password) {
     if (!configured || !/^[A-Za-z0-9_-]{43}$/.test(pendingInvite || '')) throw failure('开通链接无效，请重新打开专属开通链接');
     const response=await fetch(`${config.url}/functions/v1/album-enroll`,{
@@ -162,5 +308,5 @@
     pendingInvite=null;
     await login(result.email,password);
   }
-  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
+  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,addSharedWish,setSharedWish,saveSharedLetter,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
 })();

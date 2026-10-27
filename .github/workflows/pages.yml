@@ -25,6 +25,8 @@ jobs:
         run: node scripts/verify.cjs
       - name: Check recoverable photo deletion
         run: node scripts/check-album-trash.cjs
+      - name: Check shared memories and migration
+        run: node scripts/check-shared-memories.cjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

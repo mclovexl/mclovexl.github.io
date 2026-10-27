@@ -35,3 +35,14 @@
 .trash-empty{padding:38px 0;text-align:center;color:#a3937c;font-family:var(--serif);font-size:14px;line-height:1.9}
 .trash-load-more{display:block;margin:18px auto 0;background:transparent;color:#8a765e}
 @media(max-width:600px){.cloud-status{align-items:flex-start;flex-direction:column;gap:5px}.album-tools{gap:22px}.album-dialog-body{padding:23px}.album-dialog-note{font-size:11px}.trash-photo{gap:11px;flex-wrap:wrap}.trash-photo img{width:60px;height:60px}.trash-photo-info h3{font-size:14px}.trash-restore{font-size:11px;padding:9px 10px}.lightbox-actions button{font-size:11px;padding:9px 13px}}
+.letter-history[hidden],.legacy-wishes[hidden],#retry-memories[hidden]{display:none}
+.letter-history,.legacy-wishes{margin:0 0 18px;color:#8e7c65;font-size:11px;line-height:1.8}
+.letter-history summary,.legacy-wishes summary{cursor:pointer;color:#a47d6a}
+#letter-history-list{max-height:220px;overflow:auto;margin-top:10px}
+.letter-history-entry{padding:11px 0;border-top:1px solid #d8cebe}
+.letter-history-entry small{color:#aa9984}
+.letter-history-entry p{white-space:pre-wrap;overflow-wrap:anywhere;max-height:110px;overflow:auto;margin:5px 0}
+.letter-history-use,#legacy-wishes-reviewed{border:0;background:transparent;color:#a47d6a;padding:6px 0;text-decoration:underline}
+.legacy-wishes{margin:16px 0 0}
+.legacy-wishes ul{padding-left:18px}
+#retry-memories{font-size:10px;padding:4px 0}

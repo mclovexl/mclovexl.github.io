@@ -14,20 +14,24 @@
   const node = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
   const dotted = (date) => date.replaceAll('-', '.');
   const initialSettings = Object.fromEntries(['me', 'her', 'startDate', 'promise', 'letter'].map(key => [key, base[key]]));
-  let settings = { ...initialSettings, ...shared.settings, ...safeRead('settings', {}) };
+  const oldSettings = safeRead('settings', {});
+  const legacy = {stories:safeRead('stories', []),wishes:safeRead('wishes', null),
+    letter:typeof oldSettings?.letter==='string' && oldSettings.letter!==base.letter ? oldSettings.letter : ''};
+  let settings = { ...initialSettings, ...shared.settings, ...(cloudMode ? {} : oldSettings) };
   delete settings.startTime; // Ignore the previous version's browser-saved hour.
   try { Time.dateParts(settings.startDate); } catch { settings.startDate = base.startDate; }
   for (const key of ['me', 'her', 'promise', 'letter']) if (typeof settings[key] !== 'string' || !settings[key].trim()) settings[key] = base[key];
-  let customStories = safeRead('stories', shared.stories || []);
+  let customStories = cloudMode ? [] : safeRead('stories', shared.stories || []);
   if (!Array.isArray(customStories)) customStories = [];
-  let wishes = safeRead('wishes', shared.wishes || [
+  const defaultWishes = [
     { id: 'wish-sea', text: '一起去看海', done: false },
     { id: 'wish-sunset', text: '收藏一百次日落', done: false },
     { id: 'wish-city', text: '去彼此想去的城市', done: false },
     { id: 'wish-home', text: '把小日子过成诗', done: false },
     { id: 'wish-stars', text: '牵着手看一场流星雨', done: false },
     { id: 'wish-forever', text: '一起到很久很久以后', done: false }
-  ]);
+  ];
+  let wishes = cloudMode ? defaultWishes.map(w=>({...w})) : safeRead('wishes', shared.wishes || defaultWishes);
   if (!Array.isArray(wishes)) wishes = [];
   let photos = shared.photos?.length ? shared.photos : base.photos;
   let currentFilter = 'all';
@@ -40,6 +44,9 @@
   let databasePromise;
   let cloudGeneration = 0;
   let syncInFlight = null;
+  let memoriesReady = !cloudMode, memoriesMigratedFor = null, memoryInFlight = null;
+  let memoryMutation = 0, memoryWriting = false, sharedLetterRevision = null, letterEditingRevision = null, letterHistory = [];
+  let legacyFingerprint = '', legacyWishDifferences = [];
   let pendingDelete = null, photoMutation = false;
   let trashPhotos = [], trashRequest = 0, trashHasMore = false;
 
@@ -104,22 +111,80 @@
     $('#anniversary-date').textContent = `${dotted(next.date)} · ${next.today ? '今天也要好好相爱' : '继续相爱'}`;
     $('#anniversary-title').textContent = next.today ? (next.years > 0 ? `今天是我们的第 ${next.years} 个周年 ♡` : '今天，我们的故事开始了 ♡') : next.futureStart ? '距离我们的故事开始' : '距离我们的下一个周年';
   }
+  function queueMemorySync() {
+    if (cloudMode) setTimeout(() => syncSharedMemories(true).catch(()=>{}),0);
+  }
+  function requireMemories() {
+    if (!cloudMode) return true;
+    if (!cloud.state().authorized) { showAccount(); return false; }
+    if (!memoriesReady) { toast('正在同步共同回忆，请稍后再试。'); queueMemorySync(); return false; }
+    if (memoryWriting) { toast('正在保存，请稍候。'); return false; }
+    return true;
+  }
+  function renderLetterHistory() {
+    const section=$('#letter-history'), list=$('#letter-history-list');
+    list.replaceChildren();
+    section.hidden=!cloudMode || !cloud.state().authorized || !letterHistory.length;
+    if (section.hidden) { section.open=false; return; }
+    letterHistory.forEach(item => {
+      const row=node('div','letter-history-entry');
+      const label=item.source==='legacy' ? '从原浏览器找回' : '之前保存';
+      const when=new Date(item.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'});
+      row.append(node('small','',`${label} · ${when}`),node('p','',item.body));
+      const use=node('button','letter-history-use','使用这封');
+      use.type='button';
+      use.addEventListener('click',()=>{
+        $('#settings-form').elements.namedItem('letter').value=item.body;
+        letterEditingRevision=sharedLetterRevision;
+        $('#settings-form').elements.namedItem('letter').focus();
+        toast('已载入这封情书，点击保存后才会替换当前版本。');
+      });
+      row.append(use); list.append(row);
+    });
+  }
+  function renderLegacyWishes() {
+    const section=$('#legacy-wishes'), list=$('#legacy-wishes-list');
+    list.replaceChildren();
+    const reviewed=safeRead('legacy-wishes-reviewed','')===legacyFingerprint;
+    const conflicts=legacyWishDifferences || [];
+    section.hidden=!cloudMode || !cloud.state().authorized || reviewed || !conflicts.length;
+    if (section.hidden) { section.open=false; return; }
+    conflicts.forEach(w=>list.append(node('li','',`${w.text}：本机原来${w.done?'已实现':'待实现'}`)));
+  }
+  $('#legacy-wishes-reviewed').addEventListener('click',()=>{
+    try { save('legacy-wishes-reviewed',legacyFingerprint); }
+    catch { /* The original backup remains in the private cloud and browser. */ }
+    $('#legacy-wishes').hidden=true;
+  });
+  $('#retry-memories').addEventListener('click',()=>syncSharedMemories().catch(()=>{}));
   $('#customize').addEventListener('click', () => {
+    if (!requireMemories()) return;
     const form = $('#settings-form');
     form.elements.namedItem('letter').value = settings.letter;
+    letterEditingRevision=sharedLetterRevision;
+    renderLetterHistory();
     openDialog('#settings-dialog');
   });
-  $('#settings-form').addEventListener('submit', event => {
+  $('#settings-form').addEventListener('submit', async event => {
     event.preventDefault();
     const letter = event.currentTarget.elements.namedItem('letter').value.trim();
     if (!letter) { toast('写下想对她说的话，再保存吧。'); return; }
-    const next = { ...settings, letter };
-    try { save('settings', next); } catch (err) { toast(`暂时无法保存：${err.message}`); return; }
-    settings = next;
-    renderSettings();
-    $('#settings-dialog').close();
-    toast('这封情书，已经替你好好收藏。♡');
-    celebrate(15);
+    if (!requireMemories() || memoryWriting) return;
+    const submit=$('button[type="submit"]',event.currentTarget);
+    memoryWriting=true; memoryMutation++; submit.disabled=true;
+    try {
+      if (cloudMode) {
+        const saved=await cloud.saveSharedLetter(letter,letterEditingRevision);
+        if (!cloud.state().authorized) return;
+        sharedLetterRevision=saved.revision;
+      } else save('settings',{...settings,letter});
+      settings = { ...settings, letter };
+      renderSettings();
+      $('#settings-dialog').close();
+      toast(cloudMode ? '情书已同步，你们都可以看到。♡' : '这封情书，已经替你好好收藏。♡');
+      celebrate(15);
+    } catch (err) { toast(err.message || '情书未保存，请稍后重试。'); }
+    finally { memoryWriting=false; submit.disabled=false; if (cloudMode) queueMemorySync(); }
   });
 
   function renderPhotos() {
@@ -415,6 +480,60 @@
     syncInFlight={generation,promise:operation};
     try { return await operation; } finally { if(syncInFlight?.promise===operation) syncInFlight=null; }
   }
+  async function syncSharedMemories(silent = false) {
+    if (!cloudMode || !cloud.state().authorized) return;
+    const generation=cloudGeneration, userId=cloud.state().userId, mutation=memoryMutation;
+    if (memoryInFlight?.generation===generation) return memoryInFlight.promise;
+    const operation=(async()=>{
+      $('#retry-memories').hidden=true;
+      if (!silent || !memoriesReady) $('#memory-sync-status').textContent='正在同步你们的故事、愿望和情书……';
+      try {
+        if (memoriesMigratedFor!==userId) {
+          const migrated=await cloud.migrateSharedMemories(legacy,defaultWishes,base.letter);
+          if (generation!==cloudGeneration || !cloud.state().authorized) return;
+          memoriesMigratedFor=userId;
+          legacyFingerprint=migrated.fingerprint;
+          const review=safeRead('shared-migration-review',{});
+          legacyWishDifferences=review.fingerprint===legacyFingerprint && Array.isArray(review.wishes) ? review.wishes : null;
+          if (migrated.skipped) toast('部分本机旧内容格式特殊，已安全备份，请稍后处理。');
+        }
+        let next=await cloud.listSharedMemories();
+        if (generation!==cloudGeneration || !cloud.state().authorized) return;
+        if (mutation!==memoryMutation || memoryWriting) { if (!memoryWriting) queueMemorySync(); return; }
+        if (next.letter.source==='seed' && typeof legacy.letter==='string' && legacy.letter.trim() && legacy.letter.trim().length<=6000) {
+          const promoted=await cloud.promoteLegacyLetter(legacy.letter.trim(),next.letter.revision);
+          next=promoted ? {...next,letter:promoted} : await cloud.listSharedMemories();
+          if (generation!==cloudGeneration || !cloud.state().authorized) return;
+          if (mutation!==memoryMutation || memoryWriting) { if (!memoryWriting) queueMemorySync(); return; }
+        }
+        if (legacyWishDifferences===null) {
+          const old=Array.isArray(legacy.wishes)?legacy.wishes:[];
+          legacyWishDifferences=old.filter(w=>w && next.wishes.some(current=>current.id===w.id &&
+            (current.text!==w.text || current.done!==!!w.done)));
+          try { save('shared-migration-review',{fingerprint:legacyFingerprint,wishes:legacyWishDifferences}); }
+          catch { /* The private backup remains available even if local storage is full. */ }
+        }
+        customStories=next.stories;
+        const order=new Map(defaultWishes.map((wish,index)=>[wish.id,index]));
+        wishes=next.wishes.sort((a,b)=>(order.get(a.id) ?? defaultWishes.length)-(order.get(b.id) ?? defaultWishes.length));
+        settings={...settings,letter:next.letter.body};
+        sharedLetterRevision=next.letter.revision;
+        letterHistory=next.history;
+        memoriesReady=true;
+        renderSettings(); renderWishes(); renderLetterHistory(); renderLegacyWishes();
+        $('#memory-sync-status').textContent='你们的故事、愿望和情书已同步 ♡';
+      } catch (err) {
+        if (generation===cloudGeneration) {
+          $('#memory-sync-status').textContent=err.message || '共同回忆同步失败，请稍后重试。';
+          $('#retry-memories').hidden=false;
+          if (!silent) toast(err.message || '共同回忆同步失败，请稍后重试。');
+        }
+        throw err;
+      }
+    })();
+    memoryInFlight={generation,promise:operation};
+    try { return await operation; } finally { if (memoryInFlight?.promise===operation) memoryInFlight=null; }
+  }
   function updateCloudState(state) {
     cloudGeneration++;
     $('#cloud-account').hidden=false;
@@ -423,6 +542,16 @@
     $('#open-trash').hidden=!state.authorized;
     $('#cloud-account').textContent=state.authorized ? '共享相册 ♡' : '登录相册';
     if (!state.authorized) {
+      memoriesReady=false; memoriesMigratedFor=null; memoryMutation++;
+      sharedLetterRevision=null; letterEditingRevision=null; letterHistory=[]; legacyFingerprint=''; legacyWishDifferences=[];
+      settings={...settings,letter:base.letter};
+      customStories=[]; wishes=defaultWishes.map(w=>({...w}));
+      renderSettings(); renderWishes(); renderLetterHistory(); renderLegacyWishes();
+      $('#memory-sync-status').textContent='登录共享相册后，故事、愿望和情书会同步。';
+      $('#retry-memories').hidden=true;
+      for (const id of ['settings-dialog','story-dialog','wish-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();
+      $('#settings-form').reset(); $('#story-form').reset(); $('#wish-form').reset();
+      $('#letter-paper').hidden=true; $('#open-letter').setAttribute('aria-expanded','false');
       photos=base.photos;
       currentPhotoPage=1;
       renderPhotos();
@@ -435,6 +564,7 @@
       $('#cloud-status-text').textContent=!state.configured ? '相册尚未连接，请完成云端配置。' : !state.initialized ? '正在确认相册登录状态……' : state.authenticated ? '此账号还没有相册访问权限。' : '登录后，打开我们共同的私密照片。';
     } else {
       syncCloudAlbum().catch(()=>{});
+      syncSharedMemories().catch(()=>{});
       if ($('#account-dialog').open && (!$('#account-login-form').hidden || !$('#account-enroll-form').hidden)) {
         $('#account-login-form').reset(); $('#account-enroll-form').reset();
         $('#account-dialog').close();
@@ -486,22 +616,32 @@
       timeline.append(item);
     });
   }
-  $('#add-story').addEventListener('click', () => { const form = $('#story-form'); form.reset(); form.elements.namedItem('date').value = Time.todayShanghai(); openDialog('#story-dialog'); });
-  $('#story-form').addEventListener('submit', event => {
+  $('#add-story').addEventListener('click', () => { if (!requireMemories()) return; const form = $('#story-form'); form.reset(); delete form.dataset.pendingId; form.elements.namedItem('date').value = Time.todayShanghai(); openDialog('#story-dialog'); });
+  $('#story-form').addEventListener('submit', async event => {
     event.preventDefault();
     const fields = Object.fromEntries(new FormData(event.currentTarget));
     fields.title = fields.title.trim();
     fields.body = fields.body.trim();
     if (!fields.title || !fields.body) { toast('把故事写完整，再收藏吧。'); return; }
+    if (!requireMemories()) return;
+    const form=event.currentTarget, submit=$('button[type="submit"]',form);
+    memoryWriting=true; memoryMutation++; submit.disabled=true;
     try {
       Time.dateParts(fields.date);
-      const next = [...customStories, { ...fields, id: crypto.randomUUID() }];
-      save('stories', next);
+      const story={...fields,id:form.dataset.pendingId || crypto.randomUUID()};
+      form.dataset.pendingId=story.id;
+      if (cloudMode) {
+        await cloud.addSharedStory(story);
+        if (!cloud.state().authorized) return;
+      }
+      const next = [...customStories, story];
+      if (!cloudMode) save('stories', next);
       customStories = next;
       renderStories();
       $('#story-dialog').close();
-      toast('这段回忆，已经住进我们的星座。✧');
+      toast(cloudMode ? '故事已同步，你们都可以看到。✧' : '这段回忆，已经住进我们的星座。✧');
     } catch (err) { toast(`故事未保存：${err.message}`); }
+    finally { memoryWriting=false; submit.disabled=false; if (cloudMode) queueMemorySync(); }
   });
 
   function renderWishes() {
@@ -520,37 +660,59 @@
       button.setAttribute('aria-pressed', String(wish.done));
       button.append(node('span', '', wish.done ? '✦' : '✧'), node('b', '', wish.text));
       if (wish.done) button.append(node('small', '', '已实现 ✓'));
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
+        if (!requireMemories()) return;
         const next = wishes.map(item => item.id === wish.id ? { ...item, done: !item.done } : item);
-        try { save('wishes', next); } catch { toast('保存失败，请检查浏览器存储空间。'); return; }
-        wishes = next;
-        renderWishes();
-        if (!wish.done) { celebrate(12); toast('又一颗愿望星，被我们一起点亮了。✦'); }
-        else toast('小愿望重新回到待实现清单。');
+        memoryWriting=true; memoryMutation++; button.disabled=true;
+        try {
+          if (cloudMode) {
+            await cloud.setSharedWish(wish.id,!wish.done);
+            if (!cloud.state().authorized) return;
+          } else save('wishes', next);
+          wishes = next;
+          renderWishes();
+          if (!wish.done) { celebrate(12); toast('又一颗愿望星，被我们一起点亮了。✦'); }
+          else toast('小愿望重新回到待实现清单。');
+        } catch (err) { toast(err.message || '愿望状态未保存，请重试。'); }
+        finally { memoryWriting=false; button.disabled=false; if (cloudMode) queueMemorySync(); }
       });
       sky.append(button);
     });
     sky.append(node('span', 'wish-more', '✧ 点击星星，点亮已实现的愿望'));
   }
   const newWish = () => {
+    if (!requireMemories()) return;
     if (wishes.length >= 12) { toast('星空已收藏 12 个愿望，先一起实现它们吧。♡'); return; }
     $('#wish-form').reset();
+    delete $('#wish-form').dataset.pendingId;
     openDialog('#wish-dialog');
   };
   $('#add-wish').addEventListener('click', newWish);
   $('#hero-wish').addEventListener('click', newWish);
-  $('#wish-form').addEventListener('submit', event => {
+  $('#wish-form').addEventListener('submit', async event => {
     event.preventDefault();
     const text = event.currentTarget.elements.namedItem('text').value.trim();
     if (!text) return;
-    const next = [...wishes, { id: crypto.randomUUID(), text, done: false }];
-    try { save('wishes', next); } catch { toast('暂时无法保存愿望，请检查存储空间。'); return; }
-    wishes = next;
-    renderWishes();
-    $('#wish-dialog').close();
-    $('#wishes').scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' });
-    toast('宇宙收到你们的愿望啦。✧');
-    celebrate(12);
+    if (!requireMemories()) return;
+    const form=event.currentTarget, submit=$('button[type="submit"]',form);
+    memoryWriting=true; memoryMutation++; submit.disabled=true;
+    try {
+      const wish={id:form.dataset.pendingId || crypto.randomUUID(),text,done:false};
+      form.dataset.pendingId=wish.id;
+      if (cloudMode) {
+        await cloud.addSharedWish(wish);
+        if (!cloud.state().authorized) return;
+      }
+      const next=[...wishes,wish];
+      if (!cloudMode) save('wishes',next);
+      wishes=next;
+      renderWishes();
+      $('#wish-dialog').close();
+      $('#wishes').scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' });
+      toast(cloudMode ? '愿望已同步，你们都可以看到。✧' : '宇宙收到你们的愿望啦。✧');
+      celebrate(12);
+    } catch (err) { toast(err.message || '愿望未保存，请稍后重试。'); }
+    finally { memoryWriting=false; submit.disabled=false; if (cloudMode) queueMemorySync(); }
   });
 
   function startGame(title, eyebrow) {
@@ -794,14 +956,15 @@
   renderSettings();
   renderPhotos();
   renderWishes();
+  if (!cloudMode) $('#memory-sync-status').textContent='故事、愿望和情书保存在当前浏览器。';
   initStars();
   setInterval(renderClock, 1000);
   if (cloudMode) {
     cloud.subscribe(updateCloudState);
     updateCloudState(cloud.state());
     cloud.init().then(() => { if(cloud.state().hasInvite) showAccount(); }).catch(err => { $('#cloud-status-text').textContent=err.message; toast(err.message); });
-    setInterval(() => { if(!document.hidden && cloud.state().authorized) syncCloudAlbum(true).catch(()=>{}); },30000);
-    document.addEventListener('visibilitychange',() => { if(!document.hidden && cloud.state().authorized) syncCloudAlbum(true).catch(()=>{}); });
+    setInterval(() => { if(!document.hidden && cloud.state().authorized) { syncCloudAlbum(true).catch(()=>{}); syncSharedMemories(true).catch(()=>{}); } },30000);
+    document.addEventListener('visibilitychange',() => { if(!document.hidden && cloud.state().authorized) { syncCloudAlbum(true).catch(()=>{}); syncSharedMemories(true).catch(()=>{}); } });
   }
   if (location.protocol === 'file:' && !window.__UNIVERSE_OFFLINE_SOURCE__) toast('双击「打开我们的小宇宙.cmd」可完整预览网站。');
 })();
