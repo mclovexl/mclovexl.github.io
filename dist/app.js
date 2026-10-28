@@ -761,7 +761,7 @@
   $('#open-memory').addEventListener('click', openMemory);
   function openCatch() {
     const content = startGame('接住我的喜欢', 'GAME / 02 · CATCH MY LOVE');
-    let remaining = 20, score = 0, active = false, spawnTimer, tickTimer, endAt;
+    let remaining = 20, score = 0, active = false, spawnTimer, tickTimer, startAt, endAt;
     const info = node('div', 'game-info');
     const timeLabel = node('span', '', '剩余时间：20 秒');
     const scoreLabel = node('span', '', '接到喜欢：0');
@@ -777,8 +777,9 @@
     reset.type = 'button';
     reset.addEventListener('click', openCatch);
     reset.hidden = true;
-    const clearTimers = () => { clearInterval(spawnTimer); clearInterval(tickTimer); };
+    const clearTimers = () => { clearTimeout(spawnTimer); clearInterval(tickTimer); };
     const finish = () => {
+      if (!active) return;
       active = false;
       clearTimers();
       area.replaceChildren();
@@ -788,32 +789,46 @@
       const best = Math.max(oldBest, score);
       try { save('catch-best', best); } catch { /* 得分不依赖持久化。 */ }
       const result = node('div', 'catch-start');
-      result.append(node('span', '', '♡'), node('p', '', `接住了 ${score} 份喜欢 · 最高纪录 ${best} 份\n还有很多很多喜欢，往后的日子慢慢给你。`));
+      result.append(node('span', '', '♡'), node('p', '', `接住了 ${score} 份喜欢 · 最高纪录 ${best} 份`));
       area.append(result);
-      message.textContent = score > 0 ? '喜欢都归你，宇宙也归你。♡' : '没有接到也没关系，我会亲手把喜欢送给你。♡';
+      message.textContent = '无论接住多少爱心，管家心里永远装满了你';
       reset.hidden = false;
       celebrate(25);
     };
     const spawn = () => {
       if (!active) return;
-      const heart = node('button', 'falling-heart', Math.random() > .7 ? '♡' : '♥');
-      heart.type = 'button';
-      heart.setAttribute('aria-label', '接住这颗爱心');
-      heart.style.left = `${5 + Math.random() * 76}%`;
-      heart.style.color = ['#b77d69', '#b59771', '#9e8b7b'][Math.floor(Math.random() * 3)];
-      let caught = false;
-      const collect = () => { if (!active || caught) return; caught = true; score++; scoreLabel.textContent = `接到喜欢：${score}`; heart.remove(); };
-      heart.addEventListener('click', collect);
-      heart.addEventListener('animationend', () => heart.remove());
-      area.append(heart);
+      const now = performance.now();
+      if (now >= endAt) { finish(); return; }
+      const progress = Math.min(1, (now - startAt) / 20000);
+      const waveSize = reducedMotion ? 1 : 1 + Math.min(2, Math.floor(progress * 3));
+      for (let i = 0; i < waveSize; i++) {
+        const heart = node('button', 'falling-heart', Math.random() > .7 ? '♡' : '♥');
+        heart.type = 'button';
+        heart.setAttribute('aria-label', '接住这颗爱心');
+        // Spread each wave across the sky; later waves fall faster and arrive sooner.
+        heart.style.left = `${5 + (i + Math.random()) / waveSize * 76}%`;
+        heart.style.animationDuration = `${(3.8 - 2.4 * progress).toFixed(2)}s`;
+        heart.style.color = ['#b77d69', '#b59771', '#9e8b7b'][Math.floor(Math.random() * 3)];
+        let caught = false;
+        const collect = () => {
+          if (!active || caught) return;
+          if (performance.now() >= endAt) { finish(); return; }
+          caught = true; score++; scoreLabel.textContent = `接到喜欢：${score}`; heart.remove();
+        };
+        heart.addEventListener('click', collect);
+        heart.addEventListener('animationend', () => heart.remove());
+        area.append(heart);
+      }
+      spawnTimer = setTimeout(spawn, Math.round(650 - (reducedMotion ? 250 : 430) * progress));
     };
     begin.addEventListener('click', () => {
+      if (active) return;
       intro.remove();
       active = true;
-      endAt = performance.now() + 20000;
+      startAt = performance.now();
+      endAt = startAt + 20000;
       message.textContent = '每一颗爱心，都是一句「好喜欢你」。';
       spawn();
-      spawnTimer = setInterval(spawn, 650);
       tickTimer = setInterval(() => {
         remaining = Math.max(0, Math.ceil((endAt - performance.now()) / 1000));
         timeLabel.textContent = `剩余时间：${remaining} 秒`;
@@ -821,7 +836,7 @@
       }, 100);
     });
     content.append(info, area, message, reset);
-    gameCleanup = () => { active = false; clearTimers(); };
+    gameCleanup = () => { active = false; clearTimers(); area.replaceChildren(); };
   }
   $('#open-catch').addEventListener('click', openCatch);
   const dateIdeas = [
