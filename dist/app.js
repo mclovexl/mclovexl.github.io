@@ -739,7 +739,7 @@
           pairs++;
           pairsLabel.textContent = `找到心动：${pairs} / 6`;
           first = null;
-          message.textContent = pairs === 6 ? `全部找到！${moves} 次翻牌，收集了我们的满分默契。♡` : '找到了，原来你也在这里。♡';
+          message.textContent = pairs === 6 ? `全部找到！${moves} 次翻牌，收集了我们的满分默契。♡` : '找到了，原来你也在这里♡';
           if (pairs === 6) celebrate(35);
         } else {
           locked = true;
@@ -772,7 +772,7 @@
     begin.type = 'button';
     intro.append(node('span', '', '♡'), node('p', '', '20 秒里，点击飘落的爱心。鼠标、触屏都能玩，键盘可以 Tab 选中心心再按回车。'), begin);
     area.append(intro);
-    const message = node('p', 'game-message', '准备好了吗？我的喜欢要出发了。');
+    const message = node('p', 'game-message', '准备好了吗？我的喜欢要出发了');
     const reset = node('button', 'game-reset', '再接一次喜欢 ↻');
     reset.type = 'button';
     reset.addEventListener('click', openCatch);
