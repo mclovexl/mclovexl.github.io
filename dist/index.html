@@ -9,6 +9,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2310131c'/%3E%3Cpath d='M32 47 15 30C3 15 26 7 32 23 38 7 61 15 49 30Z' fill='%23efb6a9'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="album.css?v=hundred20261027">
+  <link rel="stylesheet" href="welcome.css?v=20261028">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
   <script src="time.js?v=hundred20261027" defer></script>
@@ -18,6 +19,30 @@
   <script src="app.js?v=storylabel20261027" defer></script>
 </head>
 <body>
+  <dialog id="welcome-screen" class="welcome-screen" aria-labelledby="welcome-title">
+    <div class="welcome-stars" aria-hidden="true"></div>
+    <div class="welcome-halo welcome-halo-one" aria-hidden="true"></div><div class="welcome-halo welcome-halo-two" aria-hidden="true"></div>
+    <button class="welcome-skip" id="welcome-skip" type="button" autofocus>跳过动画 <span aria-hidden="true">↗</span></button>
+    <div class="welcome-content">
+      <div class="welcome-emblem" aria-hidden="true">
+        <svg viewBox="0 0 500 340" fill="none">
+          <defs><linearGradient id="welcome-heart-color" x1="140" y1="90" x2="360" y2="270" gradientUnits="userSpaceOnUse"><stop stop-color="#f6d9ba"/><stop offset=".5" stop-color="#f0b5aa"/><stop offset="1" stop-color="#b77782"/></linearGradient><radialGradient id="welcome-heart-glow"><stop stop-color="#efb6a9" stop-opacity=".17"/><stop offset="1" stop-color="#efb6a9" stop-opacity="0"/></radialGradient></defs>
+          <ellipse cx="250" cy="175" rx="180" ry="150" fill="url(#welcome-heart-glow)"/>
+          <g class="welcome-orbits"><ellipse cx="250" cy="175" rx="208" ry="67" transform="rotate(-22 250 175)"/><ellipse cx="250" cy="175" rx="166" ry="104" transform="rotate(30 250 175)"/></g>
+          <path class="welcome-heart-shadow" d="M250 273C230 253 133 198 133 140C133 80 210 65 250 123C290 65 367 80 367 140C367 198 270 253 250 273Z"/>
+          <path class="welcome-heart-line" pathLength="1" d="M250 273C230 253 133 198 133 140C133 80 210 65 250 123C290 65 367 80 367 140C367 198 270 253 250 273Z"/>
+          <g class="welcome-constellation"><path d="M250 273L167 194L144 119L205 95L250 123L301 96L357 120L335 196L250 273M167 194L250 123L335 196M205 95L167 194M301 96L335 196"/><circle cx="250" cy="273" r="3.5"/><circle cx="167" cy="194" r="2.5"/><circle cx="144" cy="119" r="3"/><circle cx="205" cy="95" r="2.5"/><circle cx="250" cy="123" r="3"/><circle cx="301" cy="96" r="2.5"/><circle cx="357" cy="120" r="3"/><circle cx="335" cy="196" r="2.5"/></g>
+          <g class="welcome-spark welcome-spark-one"><path d="M91 151L94 161L104 164L94 167L91 177L88 167L78 164L88 161Z"/></g><g class="welcome-spark welcome-spark-two"><path d="M400 94L404 106L416 110L404 114L400 126L396 114L384 110L396 106Z"/></g>
+          <g class="welcome-orbit-light"><circle cx="58" cy="175" r="3"/></g><g class="welcome-orbit-light welcome-orbit-light-two"><circle cx="426" cy="175" r="2.5"/></g>
+        </svg>
+      </div>
+      <h2 id="welcome-title"><span class="welcome-prelude">欢迎来到</span><span class="welcome-title-line">只属于<span>我们</span>的网站</span></h2>
+      <p class="welcome-names">赵管家 <span aria-hidden="true">♡</span> 小兰</p>
+      <div class="welcome-progress" aria-hidden="true"><span></span></div>
+    </div>
+    <div class="welcome-date" aria-hidden="true"><span></span> 2026.06.24 · 一直，永远 <span></span></div>
+  </dialog>
+  <script src="welcome.js?v=20261028"></script>
   <a class="skip-link" href="#main">跳到正文</a>
   <header class="site-header">
     <a class="brand" href="#home" aria-label="你就是我的宇宙，回到首页"><span class="brand-symbol">✳</span><span>你就是我的宇宙<small>OUR LITTLE UNIVERSE</small></span></a>
