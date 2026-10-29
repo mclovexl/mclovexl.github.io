@@ -947,7 +947,7 @@
   const observer = new IntersectionObserver(entries => {
     for (const entry of entries) if (entry.isIntersecting) $$('.main-nav a').forEach(link => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
   }, { rootMargin: '-10% 0px -60% 0px' });
-  ['home', 'memories', 'story', 'play'].forEach(id => observer.observe(document.getElementById(id)));
+  ['home', 'memories', 'story', 'priority', 'play'].forEach(id => observer.observe(document.getElementById(id)));
 
   const backgroundMusic = $('#background-music');
   const musicButton = $('#music-toggle');

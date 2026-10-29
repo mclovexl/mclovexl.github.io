@@ -319,6 +319,50 @@
     if (error) throw failure('旧情书暂时无法同步，请稍后重试');
     return data;
   }
+  const privilegeFields='id,coupon_key,status,created_by,created_at,responded_at';
+  const privilegeKeys=new Set(['pause','listen','company']);
+  async function listPrivilegeUses() {
+    requireAccess();
+    const current=revision;
+    const [recent,pending]=await Promise.all([
+      client.from('universe_privilege_uses').select(privilegeFields).eq('status','responded').order('created_at',{ascending:false}).order('id',{ascending:false}).range(0,5),
+      client.from('universe_privilege_uses').select(privilegeFields).eq('status','pending').order('created_at',{ascending:false}).order('id',{ascending:false}).range(0,2)
+    ]);
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (recent.error || pending.error) throw failure('暂时没能同步特权券，请检查网络后刷新');
+    return [...new Map([...pending.data,...recent.data].map(row=>[row.id,row])).values()]
+      .sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
+  }
+  async function usePrivilege(key,id) {
+    requireAccess();
+    const current=revision;
+    if (!privilegeKeys.has(key) || !/^[0-9a-f-]{36}$/i.test(id)) throw failure('这张特权券还没有准备好');
+    const {error}=await client.from('universe_privilege_uses').upsert(
+      [{id,coupon_key:key,created_by:session.user.id}],{onConflict:'id',ignoreDuplicates:true});
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error && error.code!=='23505') throw failure('召唤还没有保存，请检查网络后再试');
+    let query=client.from('universe_privilege_uses').select(privilegeFields);
+    query=error ? query.eq('coupon_key',key).eq('status','pending') : query.eq('id',id);
+    const result=await query.maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (result.error || !result.data || result.data.coupon_key!==key) throw failure('暂时无法确认召唤是否保存，刷新后可重试');
+    return result.data;
+  }
+  async function changePrivilegeUse(id,status) {
+    requireAccess();
+    const current=revision;
+    if (!['responded','cancelled'].includes(status)) throw failure('请选择有效的回应');
+    if (status==='responded' && role!=='owner') throw failure('这声“我在”，留给管家亲自回应');
+    const {data,error}=await client.from('universe_privilege_uses').update({status})
+      .eq('id',id).eq('status','pending').select(privilegeFields).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('这次回应还没有保存，请检查网络后重试');
+    if (data) return data;
+    const latest=await client.from('universe_privilege_uses').select(privilegeFields).eq('id',id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (!latest.error && latest.data?.status===status) return latest.data;
+    throw failure('这张券的状态刚刚有了变化，请刷新后再看');
+  }
   async function inviteRequest(action,password) {
     if (!configured || !/^[A-Za-z0-9_-]{43}$/.test(pendingInvite || '')) throw failure('开通链接无效，请重新打开专属开通链接');
     const response=await fetch(`${config.url}/functions/v1/album-enroll`,{
@@ -335,5 +379,5 @@
     pendingInvite=null;
     await login(result.email,password);
   }
-  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,saveSharedLetter,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
+  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
 })();

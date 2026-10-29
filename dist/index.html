@@ -10,13 +10,15 @@
   <link rel="stylesheet" href="styles.css?v=mobilemusic20261029">
   <link rel="stylesheet" href="album.css?v=pagejump20261029">
   <link rel="stylesheet" href="welcome.css?v=20261028">
+  <link rel="stylesheet" href="privileges.css?v=priority20261029">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
   <script src="time.js?v=hundred20261027" defer></script>
   <script src="cloud-config.js" defer></script>
   <script src="vendor/supabase.js" defer></script>
-  <script src="cloud.js?v=storyeditrev20261029" defer></script>
-  <script src="app.js?v=mobilemusic20261029" defer></script>
+  <script src="cloud.js?v=priority20261029" defer></script>
+  <script src="app.js?v=priority20261029" defer></script>
+  <script src="privileges.js?v=priority20261029" defer></script>
 </head>
 <body>
   <dialog id="welcome-screen" class="welcome-screen" aria-labelledby="welcome-title">
@@ -47,7 +49,7 @@
   <header class="site-header">
     <a class="brand" href="#home" aria-label="你就是我的宇宙，回到首页"><span class="brand-symbol">✳</span><span>你就是我的宇宙<small>OUR LITTLE UNIVERSE</small></span></a>
     <nav class="main-nav" aria-label="主导航">
-      <a href="#home" class="active">我们的宇宙</a><a href="#memories">心动瞬间</a><a href="#story">故事轨迹</a><a href="#play">玩在一起</a>
+      <a href="#home" class="active">我们的宇宙</a><a href="#memories">心动瞬间</a><a href="#story">故事轨迹</a><a href="#priority">小兰特权</a><a href="#play">玩在一起</a>
     </nav>
     <div class="header-actions"><button class="cloud-account" id="cloud-account" type="button" hidden>登录相册</button><button class="icon-button music-button" id="music-toggle" type="button" aria-label="播放《我曾这样寂寞生活》" aria-pressed="false"><span class="sound-bars"><i></i><i></i><i></i><i></i></span></button><button class="customize-button" id="customize" type="button" aria-label="写封情书" title="写封情书"><span>✧</span> 写封情书</button><button class="icon-button mobile-menu" type="button" id="menu-toggle" aria-label="展开导航" aria-expanded="false">☰</button></div>
   </header>
@@ -90,13 +92,36 @@
       <div class="timeline" id="timeline"></div>
     </div></section>
 
-    <section class="play-section" id="play" aria-labelledby="play-title"><div class="wrap"><div class="section-top"><div><p class="eyebrow"><span>03</span> OUR HAPPY LITTLE SPACE</p><h2 id="play-title">一起幼稚，<em>一起开心。</em></h2></div><p class="play-aside">快乐这件小事，<br>和你一起就很拿手。</p></div>
+    <section class="priority-section" id="priority" aria-labelledby="priority-title">
+      <div class="priority-aura" aria-hidden="true">♡</div>
+      <div class="wrap">
+        <div class="priority-intro">
+          <div><p class="eyebrow"><span>03</span> ALWAYS YOU, BEFORE EVERYTHING</p><h2 id="priority-title">小兰的<br><em>最高优先级特权</em></h2><p class="priority-lead">游戏可以等一等<br>你的声音，我会先认真听见</p><p class="priority-signature">管家签发 · 仅对小兰生效 <span>♡</span></p></div>
+          <div class="priority-console" aria-label="管家的人生优先级，小兰永远排在第一位">
+            <div class="priority-console-heading"><span><i></i> OUR UNIVERSE / HIERARCHY</span><b>∞</b></div>
+            <p class="priority-code"><span>const</span> 人生优先级 = [</p>
+            <ol class="priority-ranking"><li class="priority-first"><span class="priority-rank">01</span><div><strong>小兰</strong><small>ALWAYS FIRST · 永远的第一顺位</small></div><span class="priority-heart" aria-hidden="true">♡</span></li><li><span class="priority-rank">02</span><span>我们的小日子</span><small>慢慢过，认真爱</small></li><li><span class="priority-rank">03</span><span>游戏与其他小事</span><small>都可以稍后再说</small></li></ol>
+            <p class="priority-code priority-code-end">]<span class="priority-code-comment">// 第一位，一直是你</span></p>
+            <p class="priority-core-status" id="priority-core-status">偏爱不是限时活动，是管家的长期设定</p>
+          </div>
+        </div>
+        <div class="privilege-heading"><p>有需要的时候，就用掉一张小小的偏爱</p><span>不限次数 · 永不过期</span></div>
+        <div class="privilege-grid">
+          <article class="privilege-ticket" data-ticket="pause"><div class="privilege-ticket-top"><span>PRIVILEGE / 01</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M14 10v20M26 10v20M5 20a15 15 0 1 1 7 13"/></svg></div><p class="privilege-ticket-for">TO MY DEAREST XIAOLAN</p><h3>游戏瞬间暂停<br>召唤券</h3><p class="privilege-ticket-description">你一叫，管家的注意力就转向你<br>这局可以等，你不必排队</p><div class="privilege-ticket-stub"><span>你的召唤，永远置顶 <b>♡</b></span><button type="button" data-use-privilege="pause">使用这张特权券 <span>↗</span></button></div></article>
+          <article class="privilege-ticket" data-ticket="listen"><div class="privilege-ticket-top"><span>PRIVILEGE / 02</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M13 18a8 8 0 1 1 15 4c-2 4-7 4-7 9a4 4 0 0 1-8 0M18 18a3 3 0 1 1 5 2M7 10 4 7M5 18H1M7 26l-3 3"/></svg></div><p class="privilege-ticket-for">TO MY DEAREST XIAOLAN</p><h3>无条件出租耳朵<br>倾听券</h3><p class="privilege-ticket-description">开心也好，委屈也好，都慢慢说<br>先认真听你，再一起想办法</p><div class="privilege-ticket-stub"><span>不用准备好措辞，也能开口 <b>♡</b></span><button type="button" data-use-privilege="listen">使用这张特权券 <span>↗</span></button></div></article>
+          <article class="privilege-ticket" data-ticket="company"><div class="privilege-ticket-top"><span>PRIVILEGE / 03</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 32 7 19C-1 9 15 2 20 13 25 2 41 9 33 19Z"/><path d="m31 4 1-3 1 3 3 1-3 1-1 3-1-3-3-1Z"/></svg></div><p class="privilege-ticket-for">TO MY DEAREST XIAOLAN</p><h3>只属于你的<br>陪伴券</h3><p class="privilege-ticket-description">留一段完整的时间，认真陪你<br>不分心，不赶进度，就我们两个</p><div class="privilege-ticket-stub"><span>把时间，留给最喜欢的人 <b>♡</b></span><button type="button" data-use-privilege="company">使用这张特权券 <span>↗</span></button></div></article>
+        </div>
+        <div class="privilege-response"><div class="privilege-response-heading"><div><p class="eyebrow">A LITTLE CALL, A REAL RESPONSE</p><h3>把“我在”，留给你</h3></div><button class="text-link" id="privilege-refresh" type="button" hidden>刷新回应 ↻</button></div><p class="privilege-status" id="privilege-status" role="status" tabindex="-1">登录共同相册后，就能使用这些只属于小兰的特权</p><div id="privilege-pending"></div><details id="privilege-history" hidden><summary>收藏已经兑现的小偏爱</summary><div id="privilege-history-list"></div></details><p class="privilege-footnote">使用后，召唤会留在这里，等管家亲自回应<br>两个人登录后共享记录 · 页面打开时自动同步</p></div>
+      </div>
+    </section>
+
+    <section class="play-section" id="play" aria-labelledby="play-title"><div class="wrap"><div class="section-top"><div><p class="eyebrow"><span>04</span> OUR HAPPY LITTLE SPACE</p><h2 id="play-title">一起幼稚，<em>一起开心。</em></h2></div><p class="play-aside">快乐这件小事，<br>和你一起就很拿手。</p></div>
       <div class="game-grid"><button class="game-card memory-card" id="open-memory" type="button"><span class="game-number">GAME / 01</span><div class="memory-preview" aria-hidden="true"><span>✦</span><span>♡</span><span>✦</span><span>☾</span></div><div class="game-card-bottom"><div><h3>心有灵犀</h3><p>翻开星星，找到心动的另一半。</p></div><span class="game-arrow">↗</span></div></button>
       <button class="game-card catch-card" id="open-catch" type="button"><span class="game-number">GAME / 02</span><div class="catch-preview" aria-hidden="true"><span>♡</span><i>✦</i><b>♥</b><em>♡</em></div><div class="game-card-bottom"><div><h3>接住我的喜欢</h3><p>我的喜欢掉下来了，快来接住。</p></div><span class="game-arrow">↗</span></div></button>
       <button class="game-card date-card" id="open-date" type="button"><span class="game-number">SURPRISE / 03</span><div class="date-preview" aria-hidden="true"><span class="gift-ribbon"></span><span class="gift-box">♡</span><i>✧</i></div><div class="game-card-bottom"><div><h3>约会盲盒</h3><p>把下一次浪漫，交给一点点惊喜。</p></div><span class="game-arrow">↗</span></div></button></div>
     </div></section>
 
-    <section class="wish-section" id="wishes" aria-labelledby="wish-title"><div class="wrap wish-layout"><div><p class="eyebrow"><span>04</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>想和你做的事，数也数不完。<br>先把它们放进星空里，一件一件实现。</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button></div><div class="wish-panel"><div class="wish-sky" id="wish-sky" aria-label="我们的愿望星空"></div><p class="wish-more">✧ 点击星星，点亮已实现的愿望</p></div></div></section>
+    <section class="wish-section" id="wishes" aria-labelledby="wish-title"><div class="wrap wish-layout"><div><p class="eyebrow"><span>05</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>想和你做的事，数也数不完。<br>先把它们放进星空里，一件一件实现。</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button></div><div class="wish-panel"><div class="wish-sky" id="wish-sky" aria-label="我们的愿望星空"></div><p class="wish-more">✧ 点击星星，点亮已实现的愿望</p></div></div></section>
 
     <section class="letter-section" id="letter" aria-labelledby="letter-title"><div class="letter-decoration" aria-hidden="true">♡</div><div class="wrap letter-wrap"><p class="eyebrow">A LITTLE LETTER, A LOT OF LOVE</p><h2 id="letter-title">写给<span>小兰</span>的<br><em>一封小小情书</em></h2><p class="letter-lead">有些话，想认真地说给你听</p><button class="envelope-button" id="open-letter" type="button" aria-expanded="false" aria-controls="letter-paper"><span class="envelope-shape"><i></i><b>♡</b></span><span class="envelope-label">拆开这封信 <span>↗</span></span></button><article class="letter-paper" id="letter-paper" hidden><span class="paper-star" aria-hidden="true">✧</span><div id="letter-body"></div><p class="letter-signature">永远偏爱你的，<span data-me>赵管家</span><small>从 <span data-start>2026.06.24</span> 到很久很久以后</small></p></article><p class="forever-promise">我们的故事永远在继续......</p><span class="forever-label">YOU ARE MY ALWAYS & FOREVER.</span></div></section>
   </main>
