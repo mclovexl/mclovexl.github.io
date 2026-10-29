@@ -46,6 +46,7 @@
   let syncInFlight = null;
   let memoriesReady = !cloudMode, memoriesMigratedFor = null, memoryInFlight = null;
   let memoryMutation = 0, memoryWriting = false, sharedLetterRevision = null, letterEditingRevision = null, letterHistory = [];
+  let editingStory = null, storyConflictVersion = null;
   let pendingDelete = null, photoMutation = false;
   let trashPhotos = [], trashRequest = 0, trashHasMore = false;
 
@@ -544,6 +545,7 @@
       $('#retry-memories').hidden=true;
       for (const id of ['settings-dialog','story-dialog','wish-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();
       $('#settings-form').reset(); $('#story-form').reset(); $('#wish-form').reset();
+      editingStory=null; storyConflictVersion=null;
       $('#letter-paper').hidden=true; $('#open-letter').setAttribute('aria-expanded','false');
       photos=base.photos;
       currentPhotoPage=1;
@@ -605,11 +607,38 @@
       const date = node('span', 'story-date', story.future ? story.date : dotted(story.date));
       const card = node('div', 'story-note');
       card.append(node('h3', '', story.title), node('p', '', story.body), node('span', 'story-chip', story.tag), node('span', 'story-illustration', story.icon));
+      if (story.id && (!cloudMode || cloud.state().authorized)) {
+        const edit=node('button','story-edit','修改故事');
+        edit.type='button';
+        edit.setAttribute('aria-label',`修改故事：${story.title}`);
+        edit.addEventListener('click',()=>openStoryEditor(story));
+        const actions=node('div','story-actions');
+        actions.append(edit); card.append(actions);
+      }
       item.append(date, card);
       timeline.append(item);
     });
   }
-  $('#add-story').addEventListener('click', () => { if (!requireMemories()) return; const form = $('#story-form'); form.reset(); delete form.dataset.pendingId; form.elements.namedItem('date').value = Time.todayShanghai(); openDialog('#story-dialog'); });
+  function openStoryEditor(story = null) {
+    if (!requireMemories()) return;
+    const form=$('#story-form');
+    form.reset(); delete form.dataset.pendingId;
+    editingStory=story ? {...story} : null;
+    storyConflictVersion=null;
+    $('#story-editor-title').textContent=story ? '修改我们的故事' : '续写我们的故事';
+    $('#story-submit-text').textContent=story ? '保存修改' : '把这颗星留住';
+    $('#story-feedback').textContent='';
+    $('#reload-story').hidden=true;
+    for (const field of ['date','title','body']) form.elements.namedItem(field).value=story?.[field] || (field==='date' ? Time.todayShanghai() : '');
+    openDialog('#story-dialog');
+  }
+  $('#add-story').addEventListener('click',()=>openStoryEditor());
+  $('#reload-story').addEventListener('click',()=>{
+    if (!editingStory || !requireMemories()) return;
+    const latest=storyConflictVersion;
+    if (latest) openStoryEditor(latest);
+    else toast('暂时无法载入最新故事，请稍后再试');
+  });
   $('#story-form').addEventListener('submit', async event => {
     event.preventDefault();
     const fields = Object.fromEntries(new FormData(event.currentTarget));
@@ -618,23 +647,35 @@
     if (!fields.title || !fields.body) { toast('把故事写完整，再收藏吧。'); return; }
     if (!requireMemories()) return;
     const form=event.currentTarget, submit=$('button[type="submit"]',form);
+    const original=editingStory;
+    $('#story-feedback').textContent=''; $('#reload-story').hidden=true;
     memoryWriting=true; memoryMutation++; submit.disabled=true;
+    for (const field of ['date','title','body']) form.elements.namedItem(field).disabled=true;
     try {
       Time.dateParts(fields.date);
-      const story={...fields,id:form.dataset.pendingId || crypto.randomUUID()};
+      const story={...fields,id:original?.id || form.dataset.pendingId || crypto.randomUUID()};
       form.dataset.pendingId=story.id;
       if (cloudMode) {
-        await cloud.addSharedStory(story);
+        if (original) await cloud.updateSharedStory(story,original);
+        else await cloud.addSharedStory(story);
         if (!cloud.state().authorized) return;
       }
-      const next = [...customStories, story];
+      const next = original ? customStories.map(item=>item.id===story.id ? story : item) : [...customStories.filter(item=>item.id!==story.id), story];
       if (!cloudMode) save('stories', next);
       customStories = next;
       renderStories();
       $('#story-dialog').close();
-      toast(cloudMode ? '故事已同步，你们都可以看到。✧' : '这段回忆，已经住进我们的星座。✧');
-    } catch (err) { toast(`故事未保存：${err.message}`); }
-    finally { memoryWriting=false; submit.disabled=false; if (cloudMode) queueMemorySync(); }
+      toast(original ? (cloudMode ? '故事修改已同步，你们都可以看到 ♡' : '故事修改已保存 ♡') : cloudMode ? '故事已同步，你们都可以看到。✧' : '这段回忆，已经住进我们的星座。✧');
+    } catch (err) {
+      $('#story-feedback').textContent=`故事未保存：${err.message}`;
+      storyConflictVersion=err.latestStory || null;
+      $('#reload-story').hidden=err.name!=='StoryConflict' || !storyConflictVersion;
+    }
+    finally {
+      memoryWriting=false; submit.disabled=false;
+      for (const field of ['date','title','body']) form.elements.namedItem(field).disabled=false;
+      if (cloudMode) queueMemorySync();
+    }
   });
 
   function renderWishes() {

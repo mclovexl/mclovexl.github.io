@@ -25,5 +25,12 @@ dialog{padding:0;border:1px solid #dfd2c1;border-radius:8px;background:var(--cre
 @media(max-width:370px){.header-actions{gap:6px}.header-actions .music-button{display:none}.cloud-account{font-size:8px;padding:7px 5px}.site-header .brand{font-size:14px}.site-header .brand small{font-size:5px;letter-spacing:1.1px}.site-header .brand-symbol{font-size:27px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.falling-heart{animation:heart-fall 6s linear forwards!important}#starfield{opacity:.4}}
 .wish-panel{min-width:0}
+.story-actions{display:flex;justify-content:flex-start;margin-top:16px;padding-right:32px}
+.story-edit{min-height:36px;padding:6px 12px;border:1px solid #d4c6b5;border-radius:3px;background:transparent;color:#876f5d;font-size:11px;line-height:1.6;cursor:pointer}
+.story-edit:hover{background:#eee6d9}.story-edit:focus-visible{outline:2px solid #b68573;outline-offset:3px}
+.story-note h3{overflow-wrap:anywhere}
+.story-feedback{font-size:11px;line-height:1.9;color:#9b684f;margin:16px 0 0;overflow-wrap:anywhere}.story-feedback:empty{display:none}
+#reload-story[hidden]{display:none}#reload-story{font-size:11px;margin-top:8px;color:#876f5d}
+@media(max-width:700px){.story-edit{min-height:44px}.story-actions{margin-top:14px}}
 .wish-section .wish-panel>.wish-more{position:static;display:block;margin:42px 0 0;color:#899482;font-size:8px;line-height:1.8;text-align:right;white-space:normal;overflow-wrap:anywhere}
 @media(max-width:700px){.wish-section .wish-panel>.wish-more{margin:48px 0 0;padding:18px 12px 0;border-top:1px solid #a5b48a26;text-align:center;font-size:10px;letter-spacing:.3px}}

@@ -254,6 +254,32 @@
     if (error || !data || data.story_date!==story.date || data.title!==story.title || data.body!==story.body)
       throw failure('这段故事与云端已有内容不同，请重新打开后保存');
   }
+  async function updateSharedStory(story, original) {
+    requireAccess();
+    const current=revision;
+    if (!original || story.id!==original.id || typeof story.title!=='string' || !story.title.trim() || story.title.length>60 ||
+        typeof story.body!=='string' || !story.body.trim() || story.body.length>2000) throw failure('请把故事的日期、标题和内容填写完整');
+    window.UniverseTime.dateParts(story.date);
+    // Match the version opened in the editor so one device cannot overwrite
+    // a newer edit from the other. Creation metadata remains untouched.
+    const {data,error}=await client.from('universe_stories')
+      .update({story_date:story.date,title:story.title,body:story.body})
+      .eq('id',story.id).eq('story_date',original.date).eq('title',original.title).eq('body',original.body)
+      .select('id,story_date,title,body').maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('暂时无法保存故事，请检查网络后重试');
+    if (data) return;
+    // A response may have been lost after a successful save; retrying that
+    // exact edit is safe and must not create a duplicate story.
+    const latest=await client.from('universe_stories').select('id,story_date,title,body').eq('id',story.id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (latest.error) throw failure('暂时无法确认故事是否保存，请检查网络后重试');
+    if (latest.data?.story_date===story.date && latest.data.title===story.title && latest.data.body===story.body) return;
+    const conflict=failure('另一台设备刚修改了这段故事，当前输入仍保留。可先复制你的文字，再载入最新内容（会替换当前输入）');
+    conflict.name='StoryConflict';
+    conflict.latestStory=latest.data ? {id:latest.data.id,date:latest.data.story_date,title:latest.data.title,body:latest.data.body} : null;
+    throw conflict;
+  }
   async function addSharedWish(wish) {
     requireAccess();
     const current=revision, author=session.user.id;
@@ -308,5 +334,5 @@
     pendingInvite=null;
     await login(result.email,password);
   }
-  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,addSharedWish,setSharedWish,saveSharedLetter,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
+  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,saveSharedLetter,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
 })();
