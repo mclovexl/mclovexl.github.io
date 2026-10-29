@@ -657,7 +657,6 @@
       });
       sky.append(button);
     });
-    sky.append(node('span', 'wish-more', '✧ 点击星星，点亮已实现的愿望'));
   }
   const newWish = () => {
     if (!requireMemories()) return;
