@@ -595,7 +595,7 @@
 
   function renderStories() {
     const entries = [
-      { date: settings.startDate, title: '从这一天起，有了「我们」', body: `${settings.me} × ${settings.her}\n故事从这里开始，永远都是未完待续......`, tag: '我们的起点', icon: '♡' },
+      { date: settings.startDate, title: '从这一天起，有了「我们」', body: `${settings.me} × ${settings.her}\n故事从一个蓝调的傍晚开始，永远都是未完待续...`, tag: '我们的起点', icon: '♡' },
       ...customStories.map(story => ({ ...story, tag: '属于我们的回忆', icon: '✧' }))
     ].sort((a, b) => a.date.localeCompare(b.date));
     entries.push({ date: 'THE NEXT LITTLE ADVENTURE', title: '下一次，想和你一起出发', body: '去哪里都好，身边是你就好。\n这一页，等我们一起写下。', tag: '未来计划 · 待我们书写', icon: '↗', future: true }, { date: 'TO BE CONTINUED · ∞', title: '还有好多好多的以后', body: '故事还在继续，主角一直是我们。', tag: '未完待续', icon: '∞', future: true });
