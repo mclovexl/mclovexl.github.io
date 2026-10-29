@@ -363,6 +363,21 @@
     if (!latest.error && latest.data?.status===status) return latest.data;
     throw failure('这张券的状态刚刚有了变化，请刷新后再看');
   }
+  async function deletePrivilegeUse(id) {
+    requireAccess();
+    const current=revision;
+    const {data,error}=await client.from('universe_privilege_uses').delete()
+      .eq('id',id).eq('status','responded').select('id').maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('记录还没有删除，请检查网络后重试');
+    if (data) return data;
+    // Another device may have already removed the same immutable history row.
+    const latest=await client.from('universe_privilege_uses').select('id,status').eq('id',id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (latest.error) throw failure('暂时无法确认删除结果，请刷新后重试');
+    if (latest.data) throw failure('只能删除已经兑现的记录，请刷新后再试');
+    return {id};
+  }
   async function inviteRequest(action,password) {
     if (!configured || !/^[A-Za-z0-9_-]{43}$/.test(pendingInvite || '')) throw failure('开通链接无效，请重新打开专属开通链接');
     const response=await fetch(`${config.url}/functions/v1/album-enroll`,{
@@ -379,5 +394,5 @@
     pendingInvite=null;
     await login(result.email,password);
   }
-  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
+  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,deletePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
 })();

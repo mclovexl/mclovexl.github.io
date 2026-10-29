@@ -10,15 +10,15 @@
   <link rel="stylesheet" href="styles.css?v=prioritycopy20261029">
   <link rel="stylesheet" href="album.css?v=pagejump20261029">
   <link rel="stylesheet" href="welcome.css?v=20261028">
-  <link rel="stylesheet" href="privileges.css?v=priority20261029">
+  <link rel="stylesheet" href="privileges.css?v=historydelete20261029">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
   <script src="time.js?v=hundred20261027" defer></script>
   <script src="cloud-config.js" defer></script>
   <script src="vendor/supabase.js" defer></script>
-  <script src="cloud.js?v=priority20261029" defer></script>
+  <script src="cloud.js?v=historydelete20261029" defer></script>
   <script src="app.js?v=priority20261029" defer></script>
-  <script src="privileges.js?v=priority20261029" defer></script>
+  <script src="privileges.js?v=historydelete20261029" defer></script>
 </head>
 <body>
   <dialog id="welcome-screen" class="welcome-screen" aria-labelledby="welcome-title">
@@ -137,5 +137,6 @@
   <dialog id="photo-delete-dialog" class="form-dialog small-dialog" aria-labelledby="delete-photo-heading"><div class="album-dialog-body"><div class="dialog-heading"><div><p class="eyebrow">KEEP EVERY MEMORY SAFE</p><h2 id="delete-photo-heading">先放进回收站</h2></div><button type="button" class="close-dialog" aria-label="取消删除" data-close>×</button></div><p class="delete-photo-name" id="delete-photo-title"></p><p class="album-dialog-note">这张照片会从共享照片墙移除，并同步到其他设备。原图保留，你可以随时在回收站恢复。</p><p class="album-error" id="delete-photo-feedback" role="alert"></p><div class="album-dialog-actions"><button type="button" class="album-cancel" data-close autofocus>先留着</button><button type="button" class="album-danger" id="confirm-delete-photo">移入回收站</button></div></div></dialog>
   <dialog id="photo-trash-dialog" class="form-dialog trash-dialog" aria-labelledby="trash-heading"><div class="album-dialog-body"><div class="dialog-heading"><div><p class="eyebrow">MEMORIES CAN FIND THEIR WAY BACK</p><h2 id="trash-heading">我们的回收站</h2></div><button type="button" class="close-dialog" aria-label="关闭回收站" data-close>×</button></div><p class="album-dialog-note">这里只显示你自己移入的照片。原图仍私密保留，恢复后会重新出现在共享照片墙。</p><div class="trash-toolbar"><span id="trash-feedback" role="status"></span><button type="button" id="refresh-trash">刷新 ↻</button></div><ul class="trash-photo-list" id="trash-photo-list"></ul><button type="button" class="trash-load-more" id="trash-load-more" hidden>再看一些 ↓</button></div></dialog>
   <dialog id="game-dialog" class="game-dialog"><div class="dialog-heading"><div><p class="eyebrow" id="game-eyebrow">PLAY WITH ME</p><h2 id="game-title">心有灵犀</h2></div><button type="button" class="close-dialog" aria-label="关闭小游戏" data-close>×</button></div><div id="game-content"></div></dialog>
+  <dialog id="privilege-delete-dialog" class="form-dialog small-dialog" aria-labelledby="privilege-delete-title" aria-describedby="privilege-delete-note"><div class="album-dialog-body"><div class="dialog-heading"><div><p class="eyebrow">OUR LITTLE MEMORIES</p><h2 id="privilege-delete-title">删除这条记录？</h2></div><button type="button" class="close-dialog" aria-label="取消删除记录" data-close>×</button></div><p id="privilege-delete-name" class="privilege-delete-name"></p><p id="privilege-delete-note" class="privilege-delete-note">这条已兑现记录会从你们两个人的列表中移除，删除后无法恢复</p><p id="privilege-delete-feedback" class="album-error" role="alert"></p><div class="album-dialog-actions"><button type="button" class="album-cancel" data-close autofocus>取消</button><button type="button" class="album-danger" id="privilege-delete-confirm">确认删除</button></div></div></dialog>
 </body>
 </html>

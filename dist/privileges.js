@@ -12,6 +12,8 @@
   const buttons=[...root.querySelectorAll('[data-use-privilege]')];
   const notice=$('#privilege-status'),refresh=$('#privilege-refresh');
   const pendingList=$('#privilege-pending'),history=$('#privilege-history'),historyList=$('#privilege-history-list');
+  const deleteDialog=$('#privilege-delete-dialog'),deleteConfirm=$('#privilege-delete-confirm'),deleteFeedback=$('#privilege-delete-feedback');
+  let deleting=null;
   const signal=document.createElement('a');
   signal.id='privilege-signal'; signal.className='privilege-signal'; signal.href='#priority'; signal.hidden=true;
   const signalText=document.createElement('span'),signalTitle=document.createElement('span'),signalDetail=document.createElement('small'),signalHeart=document.createElement('span');
@@ -31,7 +33,7 @@
       button.setAttribute('aria-label',label+'：'+catalog[button.dataset.usePrivilege].title);
     }
     refresh.disabled=!account.authorized || writing || !!inFlight;
-    for(const button of pendingList.querySelectorAll('button'))button.disabled=writing;
+    for(const button of root.querySelectorAll('#privilege-pending button,#privilege-history-list button'))button.disabled=writing;
   }
   function renderRecords(force=false) {
     renderButtons();
@@ -67,11 +69,16 @@
     const answered=items.filter(item=>item.status==='responded' && catalog[item.coupon_key]).slice(0,6);
     history.hidden=!answered.length;
     for(const item of answered) {
-      const row=make('div','privilege-history-row'),body=make('div');
+      const row=make('div','privilege-history-row'),body=make('div','privilege-history-body'),actions=make('div','privilege-history-actions');
       body.append(make('strong','',catalog[item.coupon_key].title),make('p','',when(item.responded_at || item.created_at)));
-      row.append(body,make('span','','管家说：我在 ♡'));historyList.append(row);
+      const remove=make('button','privilege-history-delete','删除');
+      remove.type='button';remove.dataset.privilegeRecord=item.id;
+      remove.setAttribute('aria-label','删除记录：'+catalog[item.coupon_key].title+'，'+when(item.responded_at || item.created_at));
+      remove.addEventListener('click',()=>promptDelete(item));
+      actions.append(make('span','','管家说：我在 ♡'),remove);
+      row.append(body,actions);historyList.append(row);
     }
-    if(focusedId)for(const button of pendingList.querySelectorAll('button'))if(button.dataset.privilegeRecord===focusedId){button.focus({preventScroll:true});break;}
+    if(focusedId)for(const button of root.querySelectorAll('button[data-privilege-record]'))if(button.dataset.privilegeRecord===focusedId){button.focus({preventScroll:true});break;}
     renderButtons();
   }
   async function sync(manual=false) {
@@ -84,24 +91,31 @@
         if(current!==epoch || version!==mutation || writing)return;
         const previouslyReady=ready;
         const previousAnswers=new Set(items.filter(item=>item.status==='responded').map(item=>item.id));
+        const previousResponseAt=items.reduce((latest,item)=>item.status==='responded' && item.responded_at>latest ? item.responded_at : latest,'');
         items=next;ready=true;renderRecords();
-        if(previouslyReady && account.role==='partner' && next.some(item=>item.status==='responded' && !previousAnswers.has(item.id))) say('管家回应了：我在，先陪你 ♡');
+        if(previouslyReady && account.role==='partner' && next.some(item=>item.status==='responded' && !previousAnswers.has(item.id) && item.responded_at>previousResponseAt)) say('管家回应了：我在，先陪你 ♡');
         else if(manual || !previouslyReady || notice.dataset.error==='true')say(items.some(item=>item.status==='pending') ? '召唤已经留好，等一声温柔的“我在”' : '这些特权一直有效，有需要的时候就用掉一张');
       } catch(error) {if(current===epoch)say(error.message || '特权券暂时没有同步成功，请刷新重试',true);}
     })();
     inFlight={epoch:current,promise:task};renderButtons();
     try {await task;}finally {if(inFlight?.promise===task)inFlight=null;renderButtons();}
   }
-  async function write(action,onSuccess) {
+  async function write(action,onSuccess,removingId=null) {
     if(writing)return;
     const current=epoch;writing=true;mutation++;renderButtons();
-    say('正在把这份小小的偏爱留好……');
+    say(removingId ? '正在删除这条记录……' : '正在把这份小小的偏爱留好……');
     try {
       const item=await action();
       if(current!==epoch)return;
-      items=[item,...items.filter(old=>old.id!==item.id)];ready=true;renderRecords(true);onSuccess(item);
-    } catch(error) {if(current===epoch)say(error.message || '这次操作还没有保存，请稍后重试',true);}
-    finally {if(current===epoch){writing=false;renderButtons();sync();}}
+      items=removingId ? items.filter(old=>old.id!==removingId) : [item,...items.filter(old=>old.id!==item.id)];
+      ready=true;renderRecords(true);onSuccess(item);
+    } catch(error) {
+      if(current===epoch){
+        const message=error.message || '这次操作还没有保存，请稍后重试';
+        say(message,true);if(removingId)deleteFeedback.textContent=message;
+      }
+    }
+    finally {if(current===epoch){writing=false;deleteConfirm.disabled=false;renderButtons();sync();}}
   }
   function use(key) {
     if(!account.authorized){$('#cloud-account').click();return;}
@@ -121,12 +135,29 @@
       notice.focus({preventScroll:true});
     });
   }
+  function promptDelete(item) {
+    if(writing || !account.authorized)return;
+    deleting=item;deleteFeedback.textContent='';deleteConfirm.disabled=false;
+    $('#privilege-delete-name').textContent=catalog[item.coupon_key].title+' · '+when(item.responded_at || item.created_at);
+    if(!deleteDialog.open)deleteDialog.showModal();
+  }
+  deleteDialog.addEventListener('close',()=>{
+    deleting=null;deleteFeedback.textContent='';$('#privilege-delete-name').textContent='';
+  });
+  deleteConfirm.addEventListener('click',()=>{
+    if(!deleting || writing || !account.authorized)return;
+    const item=deleting;deleteConfirm.disabled=true;deleteFeedback.textContent='';
+    write(()=>cloud.deletePrivilegeUse(item.id),()=>{
+      deleteDialog.close();say('这条已兑现记录已删除');
+      notice.focus({preventScroll:true});
+    },item.id);
+  });
   function accountChanged(state) {
     const changed=account.userId!==state.userId || account.authorized!==state.authorized;
     account=state;
-    if(changed){epoch++;mutation++;items=[];ready=false;writing=false;inFlight=null;pendingIds.clear();signature=null;}
+    if(changed){epoch++;mutation++;items=[];ready=false;writing=false;inFlight=null;pendingIds.clear();signature=null;if(deleteDialog.open)deleteDialog.close();deleting=null;}
     refresh.hidden=!state.authorized;
-    if(!state.authorized){renderRecords(true);say('登录共同相册后，就能使用这些只属于小兰的特权');return;}
+    if(!state.authorized){if(deleteDialog.open)deleteDialog.close();deleting=null;renderRecords(true);say('登录共同相册后，就能使用这些只属于小兰的特权');return;}
     renderRecords();sync();
   }
   buttons.forEach(button=>button.addEventListener('click',()=>use(button.dataset.usePrivilege)));
