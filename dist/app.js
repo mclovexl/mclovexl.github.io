@@ -471,7 +471,7 @@
           lightboxIndex=filteredPhotos.findIndex(photo=>photo.id===viewed);
           if (lightboxIndex<0) $('#lightbox').close(); else renderLightbox();
         }
-        $('#cloud-status-text').textContent=next.length ? `我们的共享相册 · ${next.length} 个心动瞬间 · 刚刚已同步` : '共享相册已连接，放进我们的第一张合照吧。';
+        $('#cloud-status-text').textContent=next.length ? `我们的共同相册 · ${next.length} 个心动瞬间 · 刚刚已同步` : '共同相册已连接，放进我们的第一张合照吧。';
       } catch (err) {
         if (generation===cloudGeneration) $('#cloud-status-text').textContent=err.message;
         if (!silent) toast(err.message);
