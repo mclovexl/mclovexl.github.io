@@ -234,14 +234,14 @@
     requireAccess();
     const current=revision;
     const [stories,wishes,letters,history]=await Promise.all([
-      readSharedRows('universe_stories','id,story_date,title,body'),
+      readSharedRows('universe_stories','id,story_date,title,body,revision'),
       readSharedRows('universe_wishes','id,wish_text,done'),
       readSharedRows('universe_letter','id,body,revision,source'),
       readSharedRows('universe_letter_history','id,body,source,created_at')
     ]);
     if (current!==revision) throw failure('登录状态已改变，请重新同步');
     if (letters.length!==1) throw failure('共同情书尚未准备好，请稍后重试');
-    return {stories:stories.map(s=>({id:s.id,date:s.story_date,title:s.title,body:s.body})),
+    return {stories:stories.map(s=>({id:s.id,date:s.story_date,title:s.title,body:s.body,revision:s.revision})),
       wishes:wishes.map(w=>({id:w.id,text:w.wish_text,done:w.done})),letter:letters[0],
       history:history.sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id))};
   }
@@ -249,35 +249,36 @@
     requireAccess();
     const current=revision, author=session.user.id;
     await sharedUpsert('universe_stories',[{id:story.id,story_date:story.date,title:story.title,body:story.body,created_by:author}]);
-    const {data,error}=await client.from('universe_stories').select('id,story_date,title,body').eq('id',story.id).maybeSingle();
+    const {data,error}=await client.from('universe_stories').select('id,story_date,title,body,revision').eq('id',story.id).maybeSingle();
     if (current!==revision) throw failure('登录状态已改变，请重新同步');
     if (error || !data || data.story_date!==story.date || data.title!==story.title || data.body!==story.body)
       throw failure('这段故事与云端已有内容不同，请重新打开后保存');
+    return {...story,revision:data.revision};
   }
   async function updateSharedStory(story, original) {
     requireAccess();
     const current=revision;
-    if (!original || story.id!==original.id || typeof story.title!=='string' || !story.title.trim() || story.title.length>60 ||
+    if (!original?.revision || story.id!==original.id || typeof story.title!=='string' || !story.title.trim() || story.title.length>60 ||
         typeof story.body!=='string' || !story.body.trim() || story.body.length>2000) throw failure('请把故事的日期、标题和内容填写完整');
     window.UniverseTime.dateParts(story.date);
     // Match the version opened in the editor so one device cannot overwrite
     // a newer edit from the other. Creation metadata remains untouched.
     const {data,error}=await client.from('universe_stories')
-      .update({story_date:story.date,title:story.title,body:story.body})
-      .eq('id',story.id).eq('story_date',original.date).eq('title',original.title).eq('body',original.body)
-      .select('id,story_date,title,body').maybeSingle();
+      .update({story_date:story.date,title:story.title,body:story.body,revision:crypto.randomUUID()})
+      .eq('id',story.id).eq('revision',original.revision)
+      .select('id,story_date,title,body,revision').maybeSingle();
     if (current!==revision) throw failure('登录状态已改变，请重新同步');
     if (error) throw failure('暂时无法保存故事，请检查网络后重试');
-    if (data) return;
+    if (data) return {...story,revision:data.revision};
     // A response may have been lost after a successful save; retrying that
     // exact edit is safe and must not create a duplicate story.
-    const latest=await client.from('universe_stories').select('id,story_date,title,body').eq('id',story.id).maybeSingle();
+    const latest=await client.from('universe_stories').select('id,story_date,title,body,revision').eq('id',story.id).maybeSingle();
     if (current!==revision) throw failure('登录状态已改变，请重新同步');
     if (latest.error) throw failure('暂时无法确认故事是否保存，请检查网络后重试');
-    if (latest.data?.story_date===story.date && latest.data.title===story.title && latest.data.body===story.body) return;
+    if (latest.data?.story_date===story.date && latest.data.title===story.title && latest.data.body===story.body) return {...story,revision:latest.data.revision};
     const conflict=failure('另一台设备刚修改了这段故事，当前输入仍保留。可先复制你的文字，再载入最新内容（会替换当前输入）');
     conflict.name='StoryConflict';
-    conflict.latestStory=latest.data ? {id:latest.data.id,date:latest.data.story_date,title:latest.data.title,body:latest.data.body} : null;
+    conflict.latestStory=latest.data ? {id:latest.data.id,date:latest.data.story_date,title:latest.data.title,body:latest.data.body,revision:latest.data.revision} : null;
     throw conflict;
   }
   async function addSharedWish(wish) {

@@ -653,11 +653,11 @@
     for (const field of ['date','title','body']) form.elements.namedItem(field).disabled=true;
     try {
       Time.dateParts(fields.date);
-      const story={...fields,id:original?.id || form.dataset.pendingId || crypto.randomUUID()};
+      let story={...fields,id:original?.id || form.dataset.pendingId || crypto.randomUUID()};
       form.dataset.pendingId=story.id;
       if (cloudMode) {
-        if (original) await cloud.updateSharedStory(story,original);
-        else await cloud.addSharedStory(story);
+        if (original) story=await cloud.updateSharedStory(story,original);
+        else story=await cloud.addSharedStory(story);
         if (!cloud.state().authorized) return;
       }
       const next = original ? customStories.map(item=>item.id===story.id ? story : item) : [...customStories.filter(item=>item.id!==story.id), story];
