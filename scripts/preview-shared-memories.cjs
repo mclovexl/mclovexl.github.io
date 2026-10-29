@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..'),dist=path.join(root,'dist');
 const tables=new Map();
 let sequence=0;
 const dataFor=table=>{if(!tables.has(table))tables.set(table,new Map());return tables.get(table);};
-const allowed=new Set(['album_photos','universe_stories','universe_wishes','universe_letter','universe_letter_history','universe_legacy_backups']);
+const allowed=new Set(['album_photos','universe_stories','universe_wishes','universe_letter','universe_letter_history','universe_legacy_backups','universe_privilege_uses']);
 const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.webp':'image/webp','.jpg':'image/jpeg','.png':'image/png','.mp3':'audio/mpeg'};
 function handleApi(input){
   if(!allowed.has(input.table))return {data:null,error:{message:'unknown table'}};
@@ -14,7 +14,8 @@ function handleApi(input){
   if(input.operation==='upsert'){
     const items=Array.isArray(input.value)?input.value:[input.value];
     for(const item of items)if(!table.has(item.id)){
-      table.set(item.id,{...item,created_at:item.created_at||new Date(Date.now()+sequence++).toISOString()});
+      if(input.table==='universe_privilege_uses' && [...table.values()].some(row=>row.coupon_key===item.coupon_key && row.status==='pending'))return {data:null,error:{code:'23505',message:'Already pending'}};
+      table.set(item.id,{...(input.table==='universe_stories'?{revision:require('node:crypto').randomUUID()}:{}),...(input.table==='universe_privilege_uses'?{status:'pending',responded_at:null}:{}),...item,created_at:item.created_at||new Date(Date.now()+sequence++).toISOString()});
     }
     return {data:null,error:null};
   }
@@ -25,7 +26,8 @@ function handleApi(input){
     if(filter.op==='not')return (row[filter.field]??null)!==filter.value;
     return false;
   }));
-  if(input.operation==='update')for(const row of selected)Object.assign(row,input.value);
+  if(input.table==='universe_privilege_uses' && input.operation==='update')selected=selected.filter(row=>row.status==='pending' && (input.value.status==='responded' ? input.actor==='owner' : row.created_by===input.userId));
+  if(input.operation==='update')for(const row of selected)Object.assign(row,input.value,input.table==='universe_privilege_uses'?{responded_at:input.value.status==='responded'?new Date().toISOString():null}:{});
   for(const order of [...input.orders].reverse())selected.sort((a,b)=>String(a[order.field]??'').localeCompare(String(b[order.field]??''))*(order.ascending?1:-1));
   selected=selected.slice(input.first,input.last+1);
   return {data:input.single?(selected[0]||null):selected,error:null};
@@ -53,4 +55,4 @@ function serve(req,res){
     res.end(content);
   }catch{res.writeHead(404);res.end();}
 }
-for(const port of [4179,4180])http.createServer(serve).listen(port,'127.0.0.1',()=>console.log('Local shared-memory fixture: http://127.0.0.1:'+port+'/'));
+for(const port of [4178,4179])http.createServer(serve).listen(port,'127.0.0.1',()=>console.log('Local shared-memory fixture: http://127.0.0.1:'+port+'/'));

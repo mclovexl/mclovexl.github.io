@@ -1,6 +1,6 @@
 /* Browser-only local test fixture. Talks only to the loopback mock server. */
 (() => {
-  const owner=location.port==='4179';
+  const owner=location.port==='4178';
   const user={id:owner?'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa':'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     email:owner?'owner@example.invalid':'partner@example.invalid'};
   const params=new URLSearchParams(location.search);
@@ -29,7 +29,7 @@
     update(value){this.operation='update';this.value=value;return this;}
     async run(single=false){
       if(!session)return {data:null,error:{message:'not signed in'}};
-      return request({table:this.table,operation:this.operation,filters:this.filters,orders:this.orders,
+      return request({table:this.table,operation:this.operation,filters:this.filters,orders:this.orders,actor:owner?'owner':'partner',userId:user.id,
         first:this.first,last:this.last,value:this.value,single});
     }
     maybeSingle(){return this.run(true);}

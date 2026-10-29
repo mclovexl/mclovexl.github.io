@@ -30,7 +30,7 @@ assert.deepEqual(Time.hundredDays(Date.parse('2026-10-27T12:00:00+08:00'), '2026
 assert.deepEqual(Time.hundredDays(Date.parse('2024-06-06T12:00:00+08:00'), '2024-02-28'), { days: 0, date: '2024-06-06', milestone: 100, today: true });
 assert.equal(Time.todayShanghai(Date.parse('2026-10-25T16:00:00Z')), '2026-10-26');
 assert.throws(() => Time.dateParts('2026-02-30'));
-for (const file of ['config.js', 'shared-data.js', 'time.js', 'cloud-config.js', 'cloud.js', 'app.js']) new vm.Script(fs.readFileSync(path.join(dist, file), 'utf8'), { filename: file });
+for (const file of ['config.js', 'shared-data.js', 'time.js', 'cloud-config.js', 'cloud.js', 'app.js', 'privileges.js']) new vm.Script(fs.readFileSync(path.join(dist, file), 'utf8'), { filename: file });
 const html = fs.readFileSync(path.join(dist, 'index.html'), 'utf8');
 const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
 assert.equal(new Set(ids).size, ids.length, 'Duplicate IDs');
