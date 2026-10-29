@@ -8,7 +8,7 @@
   <title>你就是我的宇宙 · 赵管家 × 黄少爷</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2310131c'/%3E%3Cpath d='M32 47 15 30C3 15 26 7 32 23 38 7 61 15 49 30Z' fill='%23efb6a9'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css?v=wishlayout20261029">
-  <link rel="stylesheet" href="album.css?v=hundred20261027">
+  <link rel="stylesheet" href="album.css?v=pagejump20261029">
   <link rel="stylesheet" href="welcome.css?v=20261028">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
@@ -16,7 +16,7 @@
   <script src="cloud-config.js" defer></script>
   <script src="vendor/supabase.js" defer></script>
   <script src="cloud.js?v=shared20261027" defer></script>
-  <script src="app.js?v=wishlayout20261029" defer></script>
+  <script src="app.js?v=pagejump20261029" defer></script>
 </head>
 <body>
   <dialog id="welcome-screen" class="welcome-screen" aria-labelledby="welcome-title">
@@ -58,7 +58,7 @@
       <div class="hero-content wrap">
         <div class="hero-copy"><p class="eyebrow hero-eyebrow"><span class="tiny-star">✦</span> A UNIVERSE MADE JUST FOR YOU</p>
           <h1 id="hero-title">宇宙很大，<br>但我想围着<span>你</span>转<svg class="title-swish" viewBox="0 0 180 16" aria-hidden="true"><path d="M3 11 Q85 -2 173 6 M60 14 Q116 3 178 11"/></svg></h1>
-          <p class="hero-description">致 <span data-her>黄少爷</span>：<br>漫天星河是背景，而你是我的全部偏爱。</p>
+          <p class="hero-description">致 <span>小兰</span>：<br>漫天星河是背景，而你是我的全部偏爱。</p>
           <div class="couple"><div class="couple-avatars"><span data-me-initial>赵</span><span data-her-initial>黄</span></div><span><b data-me>赵管家</b><i>♡</i><b data-her>黄少爷</b><small>SINCE <span data-start>2026.06.24</span></small></span></div>
           <div class="hero-buttons"><a class="button button-pink" href="#memories">开启我们的故事 <span>↗</span></a><button class="hero-wish" id="hero-wish" type="button"><span>✧</span> 向宇宙许个愿</button></div>
         </div>
@@ -70,7 +70,7 @@
           <span class="orbit-caption">ALL MY STARS ORBIT YOU</span>
         </div>
       </div>
-      <div class="hero-bottom wrap"><a href="#time"><span class="scroll-line"></span>向下，收集更多心动</a><span>在亿万种可能里，<em>我选择你。</em> <span class="tiny-star">✦</span></span></div>
+      <div class="hero-bottom wrap"><a href="#time"><span class="scroll-line"></span>向下，收集更多心动</a><span>在亿万种可能里，<em>我选择你</em> <span class="tiny-star">✦</span></span></div>
     </section>
 
     <section class="time-section" id="time" aria-labelledby="time-title"><div class="wrap time-layout">
@@ -82,7 +82,7 @@
     <section class="memories-section section-light" id="memories" aria-labelledby="memories-title"><div class="wrap">
       <div class="section-top"><div><p class="eyebrow"><span>01</span> THE LITTLE THINGS</p><h2 id="memories-title">把心动，<em>留在这一帧。</em><span class="hand-star">✷</span></h2></div><div class="section-aside"><p>照片有边框，<br>我们的小美好没有。</p><button class="text-link" id="add-photo" type="button">放进我们的照片 <span>＋</span></button></div></div>
       <div class="photo-toolbar"><div class="filter-tabs" role="group" aria-label="筛选照片"><button type="button" class="selected" data-filter="all" aria-pressed="true">全部瞬间 <span id="photo-count">06</span></button><button type="button" data-filter="日常可爱" aria-pressed="false">日常可爱</button><button type="button" data-filter="一起出发" aria-pressed="false">一起出发</button><button type="button" data-filter="心动限定" aria-pressed="false">心动限定</button></div><span class="photo-hint">↗ 点击照片，放大心动</span></div>
-      <div class="cloud-status" id="cloud-status" hidden><span id="cloud-status-text" role="status">登录后，打开我们共同的相册。</span><div class="album-tools"><button type="button" id="open-trash" hidden>回收站 ♧</button><button type="button" id="sync-album">刷新相册 ↻</button></div></div><div class="photo-grid" id="photo-grid" role="group" aria-label="照片墙" tabindex="-1"></div><nav class="photo-pagination" id="photo-pagination" aria-label="照片分页" hidden><button type="button" id="photo-page-prev">← 上一页</button><div class="photo-page-info" role="status" aria-live="polite" aria-atomic="true"><span id="photo-page-status"></span><small id="photo-page-meta"></small></div><button type="button" id="photo-page-next">下一页 →</button></nav><p class="demo-note" id="demo-note">✧ 这些风景是等待我们的浪漫灵感。放入真实合照，就变成专属于我们的相册。</p>
+      <div class="cloud-status" id="cloud-status" hidden><span id="cloud-status-text" role="status">登录后，打开我们共同的相册。</span><div class="album-tools"><button type="button" id="open-trash" hidden>回收站 ♧</button><button type="button" id="sync-album">刷新相册 ↻</button></div></div><div class="photo-grid" id="photo-grid" role="group" aria-label="照片墙" tabindex="-1"></div><nav class="photo-pagination" id="photo-pagination" aria-label="照片分页" hidden><button type="button" id="photo-page-prev">← 上一页</button><div class="photo-page-info" role="status" aria-live="polite" aria-atomic="true"><span id="photo-page-status"></span><small id="photo-page-meta"></small></div><button type="button" id="photo-page-next">下一页 →</button><label class="photo-page-jump" for="photo-page-select">跳至<select id="photo-page-select" aria-label="选择相册页码"></select></label></nav><p class="demo-note" id="demo-note">✧ 这些风景是等待我们的浪漫灵感。放入真实合照，就变成专属于我们的相册。</p>
     </div></section>
 
     <section class="story-section section-light" id="story" aria-labelledby="story-title"><div class="wrap story-layout">

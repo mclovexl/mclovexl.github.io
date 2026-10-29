@@ -217,16 +217,30 @@
     $('#photo-page-meta').textContent = `共 ${filteredPhotos.length} 张 · 每页 ${photosPerPage} 张`;
     $('#photo-page-prev').disabled = currentPhotoPage <= 1;
     $('#photo-page-next').disabled = currentPhotoPage >= pageCount;
+    const pageSelect = $('#photo-page-select');
+    if (pageSelect.children.length !== pageCount) {
+      const options = document.createDocumentFragment();
+      for (let page = 1; page <= pageCount; page++) {
+        const option = node('option', '', `第 ${page} 页`);
+        option.value = String(page);
+        options.append(option);
+      }
+      pageSelect.replaceChildren(options);
+    }
+    pageSelect.value = String(currentPhotoPage);
+    pageSelect.disabled = pageCount <= 1;
   }
-  function turnPhotoPage(step) {
-    currentPhotoPage += step;
+  function goToPhotoPage(page) {
+    if (!Number.isInteger(page)) return;
+    currentPhotoPage = page;
     renderPhotos();
     const grid = $('#photo-grid');
     grid.focus({preventScroll:true});
     grid.scrollIntoView({behavior:reducedMotion ? 'instant' : 'smooth',block:'start'});
   }
-  $('#photo-page-prev').addEventListener('click', () => turnPhotoPage(-1));
-  $('#photo-page-next').addEventListener('click', () => turnPhotoPage(1));
+  $('#photo-page-prev').addEventListener('click', () => goToPhotoPage(currentPhotoPage - 1));
+  $('#photo-page-next').addEventListener('click', () => goToPhotoPage(currentPhotoPage + 1));
+  $('#photo-page-select').addEventListener('change', event => goToPhotoPage(Number(event.currentTarget.value)));
   $$('.filter-tabs button').forEach(button => button.addEventListener('click', () => {
     currentFilter = button.dataset.filter;
     currentPhotoPage = 1;
