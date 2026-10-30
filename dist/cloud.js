@@ -44,10 +44,32 @@
     if (error) throw failure('无法读取登录状态，请重新登录');
     await updateSession(data.session);
   }
-  async function login(email,password) {
+  async function emailForPhone(phone) {
+    if (!config.phoneAlias || !globalThis.crypto?.subtle) throw failure('当前浏览器暂不支持手机号登录，请使用邮箱登录');
+    const bytes = value => Uint8Array.from(atob(value),char=>char.charCodeAt(0));
+    try {
+      const alias=config.phoneAlias;
+      const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(phone),'PBKDF2',false,['deriveKey']);
+      const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:bytes(alias.salt),iterations:alias.iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+      const decoded=await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(alias.iv)},key,bytes(alias.data));
+      return new TextDecoder().decode(decoded);
+    } catch {
+      throw failure('邮箱、手机号或密码不正确，或账号尚未开通');
+    }
+  }
+  async function login(identifier,password) {
     if (!configured) throw failure('云端相册尚未完成配置');
-    const {data,error} = await client.auth.signInWithPassword({email:email.trim().toLowerCase(),password});
-    if (error) throw failure('邮箱或密码不正确，或账号尚未开通');
+    const input=identifier.trim();
+    let credentials;
+    if (input.includes('@')) {
+      credentials={email:input.toLowerCase(),password};
+    } else {
+      const phone=input.replace(/[\s-]/g,'').replace(/^(?:\+86|0086)/,'');
+      if (!/^1[3-9]\d{9}$/.test(phone)) throw failure('请填写正确的邮箱或中国大陆手机号');
+      credentials={email:await emailForPhone(phone),password};
+    }
+    const {data,error} = await client.auth.signInWithPassword(credentials);
+    if (error) throw failure('邮箱、手机号或密码不正确，或账号尚未开通');
     await updateSession(data.session);
     if (!role) { await logout(); throw failure('这个账号还没有相册访问权限'); }
   }
