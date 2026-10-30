@@ -171,7 +171,7 @@
       settings = { ...settings, letter };
       renderSettings();
       $('#settings-dialog').close();
-      toast(cloudMode ? '情书已同步，你们都可以看到。♡' : '这封情书，已经替你好好收藏。♡');
+      toast(cloudMode ? '情书已同步，我们都可以看到。♡' : '这封情书，已经替你好好收藏。♡');
       celebrate(15);
     } catch (err) { toast(err.message || '情书未保存，请稍后重试。'); }
     finally { memoryWriting=false; submit.disabled=false; if (cloudMode) queueMemorySync(); }
@@ -490,7 +490,7 @@
     if (memoryInFlight?.generation===generation) return memoryInFlight.promise;
     const operation=(async()=>{
       $('#retry-memories').hidden=true;
-      if (!silent || !memoriesReady) $('#memory-sync-status').textContent='正在同步你们的故事、愿望和情书……';
+      if (!silent || !memoriesReady) $('#memory-sync-status').textContent='正在同步我们的故事、愿望和情书……';
       try {
         if (memoriesMigratedFor!==userId) {
           const migrated=await cloud.migrateSharedMemories(legacy,defaultWishes,base.letter);
@@ -665,7 +665,7 @@
       customStories = next;
       renderStories();
       $('#story-dialog').close();
-      toast(original ? (cloudMode ? '故事修改已同步，你们都可以看到 ♡' : '故事修改已保存 ♡') : cloudMode ? '故事已同步，你们都可以看到。✧' : '这段回忆，已经住进我们的星座。✧');
+      toast(original ? (cloudMode ? '故事修改已同步，我们都可以看到 ♡' : '故事修改已保存 ♡') : cloudMode ? '故事已同步，我们都可以看到。✧' : '这段回忆，已经住进我们的星座。✧');
     } catch (err) {
       $('#story-feedback').textContent=`故事未保存：${err.message}`;
       storyConflictVersion=err.latestStory || null;
@@ -742,7 +742,7 @@
       renderWishes();
       $('#wish-dialog').close();
       $('#wishes').scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' });
-      toast(cloudMode ? '愿望已同步，你们都可以看到。✧' : '宇宙收到你们的愿望啦。✧');
+      toast(cloudMode ? '愿望已同步，我们都可以看到。✧' : '宇宙收到我们的愿望啦。✧');
       celebrate(12);
     } catch (err) { toast(err.message || '愿望未保存，请稍后重试。'); }
     finally { memoryWriting=false; submit.disabled=false; if (cloudMode) queueMemorySync(); }
