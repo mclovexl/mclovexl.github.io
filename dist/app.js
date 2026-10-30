@@ -951,26 +951,68 @@
 
   const backgroundMusic = $('#background-music');
   const musicButton = $('#music-toggle');
+  const musicPanel = $('#music-panel');
+  const musicPlay = $('#music-play');
+  const musicTracks = {
+    moon: {title:'月亮星星眨眼睛', artist:'可能是雨雨', src:'assets/moon-and-stars.mp3'},
+    original: {title:'我曾这样寂寞生活', artist:'饭碗的彼岸', src:'assets/our-song.mp3'}
+  };
+  let currentMusic = 'moon', musicRequest = 0;
   backgroundMusic.volume = .45;
   function renderMusicState() {
     const playing = !backgroundMusic.paused && !backgroundMusic.ended;
     musicButton.classList.toggle('playing', playing);
-    musicButton.setAttribute('aria-pressed', String(playing));
-    musicButton.setAttribute('aria-label', `${playing ? '暂停' : '播放'}《我曾这样寂寞生活》`);
-    musicButton.title = `${playing ? '暂停' : '播放'}《我曾这样寂寞生活》`;
+    musicButton.setAttribute('aria-expanded', String(!musicPanel.hidden));
+    musicButton.setAttribute('aria-label', musicPanel.hidden ? '打开音乐播放器' : '收起音乐播放器');
+    $('#music-current-title').textContent = musicTracks[currentMusic].title;
+    $('#music-current-artist').textContent = musicTracks[currentMusic].artist;
+    $('#music-status').textContent = playing ? '正在播放' : '准备播放';
+    $('#music-play-icon').textContent = playing ? 'Ⅱ' : '▶';
+    $('#music-play-label').textContent = playing ? '暂停音乐' : '播放这首歌';
+    musicPlay.setAttribute('aria-label', `${playing ? '暂停' : '播放'}《${musicTracks[currentMusic].title}》`);
+    $$('[data-music-track]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.musicTrack === currentMusic)));
+    const showDedication = playing && currentMusic === 'moon';
+    $('#music-dedication').classList.toggle('is-playing', showDedication);
   }
-  function pauseMusic() { backgroundMusic.pause(); renderMusicState(); }
-  $('#music-toggle').addEventListener('click', async () => {
-    if (!backgroundMusic.paused) { pauseMusic(); return; }
+  function pauseMusic() { musicRequest++; backgroundMusic.pause(); renderMusicState(); }
+  async function playMusic() {
+    const request = ++musicRequest;
     try {
       await backgroundMusic.play();
     } catch (err) {
-      if (err.name !== 'AbortError') toast('音乐暂时没有播放成功，请检查网络后再点一次。');
+      if (request === musicRequest && err.name !== 'AbortError') toast('音乐暂时没有播放成功，请检查网络后再点一次。');
+    } finally {
+      if (request === musicRequest) renderMusicState();
+    }
+  }
+  function closeMusicPanel() { musicPanel.hidden = true; renderMusicState(); }
+  musicButton.addEventListener('click', () => {
+    musicPanel.hidden = !musicPanel.hidden;
+    renderMusicState();
+  });
+  $('#music-close').addEventListener('click', () => { closeMusicPanel(); musicButton.focus(); });
+  musicPlay.addEventListener('click', () => {
+    if (!backgroundMusic.paused) pauseMusic(); else playMusic();
+  });
+  $$('[data-music-track]').forEach(button => button.addEventListener('click', () => {
+    const next = button.dataset.musicTrack;
+    if (!musicTracks[next]) return;
+    if (next !== currentMusic) {
+      pauseMusic();
+      currentMusic = next;
+      backgroundMusic.src = musicTracks[next].src;
       renderMusicState();
     }
+    if (backgroundMusic.paused) playMusic();
+  }));
+  document.addEventListener('click', event => {
+    if (!musicPanel.hidden && !musicPanel.contains(event.target) && !musicButton.contains(event.target)) closeMusicPanel();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !musicPanel.hidden) { closeMusicPanel(); musicButton.focus(); }
   });
   for (const event of ['play','pause','ended']) backgroundMusic.addEventListener(event, renderMusicState);
-  backgroundMusic.addEventListener('error', pauseMusic);
+  backgroundMusic.addEventListener('error', () => { backgroundMusic.pause(); renderMusicState(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseMusic(); });
   window.addEventListener('pagehide', pauseMusic);
   renderMusicState();

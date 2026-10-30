@@ -11,13 +11,14 @@
   <link rel="stylesheet" href="album.css?v=pagejump20261029">
   <link rel="stylesheet" href="welcome.css?v=20261028">
   <link rel="stylesheet" href="privileges.css?v=historydelete20261029">
+  <link rel="stylesheet" href="music.css?v=oursong20261030">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
   <script src="time.js?v=hundred20261027" defer></script>
   <script src="cloud-config.js?v=phonelogin20261030" defer></script>
   <script src="vendor/supabase.js" defer></script>
   <script src="cloud.js?v=phonelogin20261030" defer></script>
-  <script src="app.js?v=ourwording20261030" defer></script>
+  <script src="app.js?v=oursong20261030" defer></script>
   <script src="privileges.js?v=historydelete20261029" defer></script>
 </head>
 <body>
@@ -51,16 +52,23 @@
     <nav class="main-nav" aria-label="主导航">
       <a href="#home" class="active">我们的宇宙</a><a href="#memories">心动瞬间</a><a href="#story">故事轨迹</a><a href="#priority">小兰特权</a><a href="#play">玩在一起</a>
     </nav>
-    <div class="header-actions"><button class="cloud-account" id="cloud-account" type="button" hidden>登录相册</button><button class="icon-button music-button" id="music-toggle" type="button" aria-label="播放《我曾这样寂寞生活》" aria-pressed="false"><span class="sound-bars"><i></i><i></i><i></i><i></i></span></button><button class="customize-button" id="customize" type="button" aria-label="写封情书" title="写封情书"><span>✧</span> 写封情书</button><button class="icon-button mobile-menu" type="button" id="menu-toggle" aria-label="展开导航" aria-expanded="false">☰</button></div>
+    <div class="header-actions"><button class="cloud-account" id="cloud-account" type="button" hidden>登录相册</button><button class="icon-button music-button" id="music-toggle" type="button" aria-label="打开音乐播放器" title="我们的音乐" aria-expanded="false" aria-controls="music-panel"><span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button><button class="customize-button" id="customize" type="button" aria-label="写封情书" title="写封情书"><span>✧</span> 写封情书</button><button class="icon-button mobile-menu" type="button" id="menu-toggle" aria-label="展开导航" aria-expanded="false">☰</button></div>
+    <aside class="music-panel" id="music-panel" aria-label="我们的音乐" hidden>
+      <div class="music-panel-heading"><div><p>OUR LITTLE PLAYLIST</p><h2>把旋律，留给我们</h2></div><button type="button" id="music-close" aria-label="关闭音乐播放器">×</button></div>
+      <div class="music-now-playing"><div class="music-art" aria-hidden="true"><span>☾</span><i>✦</i><b>♡</b></div><div><small id="music-status" role="status">准备播放</small><strong id="music-current-title">月亮星星眨眼睛</strong><span id="music-current-artist">可能是雨雨</span></div></div>
+      <button class="music-play" id="music-play" type="button"><span id="music-play-icon" aria-hidden="true">▶</span><span id="music-play-label">播放这首歌</span><span aria-hidden="true">♡</span></button>
+      <div class="music-tracklist" role="group" aria-label="选择歌曲"><span class="music-list-label">OUR SONGS <i>✦</i></span><button class="music-track" type="button" data-music-track="moon" aria-pressed="true"><span><strong>月亮星星眨眼睛</strong><small>风雨后的歌 · 可能是雨雨</small></span><b aria-hidden="true">♡</b></button><button class="music-track" type="button" data-music-track="original" aria-pressed="false"><span><strong>我曾这样寂寞生活</strong><small>熟悉的旋律 · 饭碗的彼岸</small></span><b aria-hidden="true">♡</b></button></div>
+    </aside>
   </header>
-  <audio id="background-music" src="assets/our-song.mp3" preload="none" loop aria-hidden="true"></audio>
+  <audio id="background-music" src="assets/moon-and-stars.mp3" preload="none" loop aria-hidden="true"></audio>
   <main id="main">
-    <section class="hero" id="home" aria-labelledby="hero-title">
+    <section class="hero has-music-note" id="home" aria-labelledby="hero-title">
       <div class="hero-art" aria-hidden="true"></div><canvas id="starfield" aria-hidden="true"></canvas><div class="hero-vignette" aria-hidden="true"></div>
       <div class="hero-content wrap">
         <div class="hero-copy"><p class="eyebrow hero-eyebrow"><span class="tiny-star">✦</span> A UNIVERSE MADE JUST FOR YOU</p>
           <h1 id="hero-title">宇宙很大，<br>但我想围着<span>你</span>转<svg class="title-swish" viewBox="0 0 180 16" aria-hidden="true"><path d="M3 11 Q85 -2 173 6 M60 14 Q116 3 178 11"/></svg></h1>
           <p class="hero-description">致 <span>小兰</span>：<br>漫天星河是背景，而你是我的全部偏爱。</p>
+          <div class="music-dedication" id="music-dedication"><span class="dedication-star" aria-hidden="true">✦</span><div><small>OUR LOVE, THROUGH EVERY SEASON</small><p>我们的爱经历了风雨也很坚定</p></div><span class="dedication-heart" aria-hidden="true">♡</span></div>
           <div class="couple"><div class="couple-avatars"><span data-me-initial>赵</span><span data-her-initial>黄</span></div><span><b data-me>赵管家</b><i>♡</i><b data-her>黄少爷</b><small>SINCE <span data-start>2026.06.24</span></small></span></div>
           <div class="hero-buttons"><a class="button button-pink" href="#memories">开启我们的故事 <span>↗</span></a><button class="hero-wish" id="hero-wish" type="button"><span>✧</span> 向宇宙许个愿</button></div>
         </div>
