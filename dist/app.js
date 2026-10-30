@@ -147,14 +147,6 @@
     });
   }
   $('#retry-memories').addEventListener('click',()=>syncSharedMemories().catch(()=>{}));
-  $('#customize').addEventListener('click', () => {
-    if (!requireMemories()) return;
-    const form = $('#settings-form');
-    form.elements.namedItem('letter').value = settings.letter;
-    letterEditingRevision=sharedLetterRevision;
-    renderLetterHistory();
-    openDialog('#settings-dialog');
-  });
   $('#settings-form').addEventListener('submit', async event => {
     event.preventDefault();
     const letter = event.currentTarget.elements.namedItem('letter').value.trim();
@@ -939,7 +931,8 @@
   let centralClicks = 0;
   $('#center-star').addEventListener('click', () => {
     centralClicks++;
-    toast(centralClicks % 5 === 0 ? `${settings.her}，${settings.promise}。♡` : ['确认过了，你就是我的宇宙中心。✦', '全宇宙的偏爱，正在向你靠近。♡', `${settings.me}的引力，只对${settings.her}生效。`][centralClicks % 3]);
+    const message = centralClicks % 5 === 0 ? `小兰，${settings.promise}。♡` : ['确认过了，你就是我的宇宙中心。✦', '全宇宙的偏爱，正在向你靠近。♡', '管家的引力，只对小兰生效。'][centralClicks % 3];
+    toast(message.replaceAll('赵管家', '管家').replaceAll('黄少爷', '小兰').replace(/。+(?=[\s♡✦]*$)/, ''));
     celebrate(centralClicks % 5 === 0 ? 50 : 10);
   });
   $('#menu-toggle').addEventListener('click', () => { const open = $('.main-nav').classList.toggle('open'); $('#menu-toggle').setAttribute('aria-expanded', String(open)); });
