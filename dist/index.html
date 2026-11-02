@@ -12,14 +12,14 @@
   <link rel="stylesheet" href="welcome.css?v=20261028">
   <link rel="stylesheet" href="privileges.css?v=historydelete20261029">
   <link rel="stylesheet" href="music.css?v=oursong20261030">
-  <link rel="stylesheet" href="wishes.css?v=planet20261102">
+  <link rel="stylesheet" href="wishes.css?v=pinch20261102">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
   <script src="time.js?v=hundred20261027" defer></script>
   <script src="cloud-config.js?v=phonelogin20261030" defer></script>
   <script src="vendor/supabase.js" defer></script>
   <script src="cloud.js?v=phonelogin20261030" defer></script>
-  <script src="wishes.js?v=planet20261102" defer></script>
+  <script src="wishes.js?v=pinch20261102" defer></script>
   <script src="app.js?v=wishplanet20261102" defer></script>
   <script src="privileges.js?v=historydelete20261029" defer></script>
 </head>
@@ -162,7 +162,7 @@
       <div class="wish-explorer-layout">
         <div class="wish-globe-column">
           <div class="wish-globe-stage"><canvas id="wish-planet-large" tabindex="0" role="img" aria-label="我们的愿望星球，星光旁显示心愿内容，拖动或按方向键旋转查看更多"></canvas><div class="wish-globe-labels" id="wish-globe-labels" role="group" aria-label="星球上的心愿内容"></div></div>
-          <div class="wish-globe-tools"><button type="button" id="wish-rotate-left" aria-label="向左旋转愿望星球">↶</button><p>拖动旋转 · 看更多心愿</p><button type="button" id="wish-zoom-out" aria-label="缩小愿望星球">−</button><button type="button" id="wish-zoom-in" aria-label="放大愿望星球">＋</button></div>
+          <div class="wish-globe-tools"><button type="button" id="wish-rotate-left" aria-label="向左旋转愿望星球">↶</button><p>双指缩放 · 单指旋转</p><button type="button" id="wish-zoom-out" aria-label="缩小愿望星球">−</button><button type="button" id="wish-zoom-in" aria-label="放大愿望星球">＋</button></div>
           <div class="wish-selected" id="wish-selected" aria-live="polite"><p class="wish-selected-label" id="wish-selected-label"></p><h3 id="wish-selected-text"></h3><button id="wish-toggle-selected" type="button"></button><p class="wish-action-feedback" id="wish-action-feedback" role="status"></p></div>
         </div>
         <div class="wish-catalog">

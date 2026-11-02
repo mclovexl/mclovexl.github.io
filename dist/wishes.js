@@ -10,15 +10,79 @@
   };
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+  // Keep one-finger rotation and two-finger scaling separate. Capture both
+  // pointers during a pinch, including touches that begin on a wish label.
+  function bindGlobeGestures(surface, {getZoom,setZoom,rotate,pick,setDragging}) {
+    const pointers=new Map();
+    let drag=null,pinch=null,suppressClickUntil=0;
+    const capture=id=>{if (!surface.hasPointerCapture(id)) surface.setPointerCapture(id);};
+    surface.addEventListener('pointerdown',event=>{
+      if (event.button!==0 || pointers.size>=2) return;
+      const onLabel=!!event.target.closest?.('.wish-globe-label');
+      pointers.set(event.pointerId,{id:event.pointerId,x:event.clientX,y:event.clientY});
+      if (pointers.size===2) {
+        const [a,b]=[...pointers.values()];
+        pinch={distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y)),zoom:getZoom()};
+        drag=null;
+        for (const id of pointers.keys()) capture(id);
+        setDragging(true);event.preventDefault();
+      } else {
+        drag={id:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,moved:false,onLabel};
+        if (!onLabel) capture(event.pointerId);
+      }
+    });
+    surface.addEventListener('pointermove',event=>{
+      const point=pointers.get(event.pointerId);
+      if (!point) return;
+      point.x=event.clientX;point.y=event.clientY;
+      if (pinch && pointers.size===2) {
+        const [a,b]=[...pointers.values()];
+        setZoom(pinch.zoom*Math.hypot(a.x-b.x,a.y-b.y)/pinch.distance);
+        event.preventDefault();
+        return;
+      }
+      if (!drag || drag.id!==event.pointerId) return;
+      if (Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)>6) drag.moved=true;
+      if (drag.moved) {
+        capture(event.pointerId);setDragging(true);
+        rotate(event.clientX-drag.x,event.clientY-drag.y);event.preventDefault();
+      }
+      drag.x=event.clientX;drag.y=event.clientY;
+    });
+    const end=event=>{
+      if (!pointers.has(event.pointerId)) return;
+      const wasPinch=!!pinch,previousDrag=drag;
+      pointers.delete(event.pointerId);
+      if (surface.hasPointerCapture(event.pointerId)) surface.releasePointerCapture(event.pointerId);
+      if (wasPinch || previousDrag?.moved) suppressClickUntil=performance.now()+350;
+      if (!wasPinch && event.type==='pointerup' && previousDrag && !previousDrag.moved && !previousDrag.onLabel) pick(event.clientX,event.clientY);
+      pinch=null;
+      const remaining=[...pointers.values()][0];
+      // After one finger lifts, rotation resumes from its current position;
+      // the end of a pinch must never count as selecting a wish.
+      drag=remaining ? {...remaining,startX:remaining.x,startY:remaining.y,moved:true,onLabel:false} : null;
+      setDragging(false);
+    };
+    for (const event of ['pointerup','pointercancel','lostpointercapture']) surface.addEventListener(event,end);
+    surface.addEventListener('click',event=>{
+      if (performance.now()<suppressClickUntil) {event.preventDefault();event.stopPropagation();}
+    },true);
+    surface.addEventListener('wheel',event=>{
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      setZoom(getZoom()*Math.exp(-event.deltaY*.01));
+    },{passive:false});
+  }
+
   // Every wish has a point on the sphere. The enlarged globe shows full-text
   // callouts for the near-side stars, placed without overlapping one another.
-  function globe(canvas, onPick) {
+  function globe(canvas, onPick, onZoomChange=()=>{}) {
     const ctx = canvas.getContext('2d');
     const labelLayer=onPick ? $('#wish-globe-labels') : null;
     const labels=new Map();
     let points = [], projected = [], selected = null;
     let yaw = .45, pitch = -.18, zoom = 1, size = 0;
-    let drag = null, onRotate = () => {};
+    let onRotate = () => {};
     function rotate(p) {
       const x = p.x * Math.cos(yaw) + p.z * Math.sin(yaw);
       const z = -p.x * Math.sin(yaw) + p.z * Math.cos(yaw);
@@ -37,9 +101,11 @@
     }
     function paintLabels() {
       if (!labelLayer) return;
+      labelLayer.hidden=zoom<=1.001;
+      for (const label of labels.values()) {label.hidden=true;label.setAttribute('aria-pressed','false');}
+      if (labelLayer.hidden) return;
       const occupied=[],width=Math.round(clamp(size*.4,100,144));
       const candidates=projected.filter(p=>p.z>=.08).sort((a,b)=>(Number(b.id===selected)-Number(a.id===selected))||b.z-a.z);
-      for (const label of labels.values()) {label.hidden=true;label.setAttribute('aria-pressed','false');}
       for (const point of candidates) {
         if (occupied.length >= (size<300?4:6)) break;
         const label=labels.get(point.id);
@@ -135,29 +201,20 @@
       ctx?.setTransform(dpr,0,0,dpr,0,0); paint();
     }
     new ResizeObserver(resize).observe(canvas);
+    function setZoom(value) {
+      zoom=clamp(value,1,1.6);paint();onZoomChange(zoom);return zoom;
+    }
     if (onPick) {
-      canvas.addEventListener('pointerdown',event=>{
-        if (event.button!==0) return;
-        drag={id:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,moved:false};
-        canvas.setPointerCapture(event.pointerId); canvas.classList.add('is-dragging');
-      });
-      canvas.addEventListener('pointermove',event=>{
-        if (!drag || event.pointerId!==drag.id) return;
-        if (Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)>6) drag.moved=true;
-        yaw+=(event.clientX-drag.x)*.009; pitch=clamp(pitch+(event.clientY-drag.y)*.009,-1.45,1.45);
-        drag.x=event.clientX; drag.y=event.clientY; paint(); onRotate();
-      });
-      const endDrag=event=>{
-        if (!drag || event.pointerId!==drag.id) return;
-        if (event.type==='pointerup' && !drag.moved) {
-          const box=canvas.getBoundingClientRect(),x=event.clientX-box.left,y=event.clientY-box.top;
+      bindGlobeGestures(canvas.parentElement,{
+        getZoom:()=>zoom,setZoom,
+        setDragging:value=>canvas.classList.toggle('is-dragging',value),
+        rotate:(dx,dy)=>{yaw+=dx*.009;pitch=clamp(pitch+dy*.009,-1.45,1.45);paint();onRotate();},
+        pick:(clientX,clientY)=>{
+          const box=canvas.getBoundingClientRect(),x=clientX-box.left,y=clientY-box.top;
           const hit=projected.filter(p=>p.z>=0).map(p=>({...p,distance:Math.hypot(p.sx-x,p.sy-y)})).sort((a,b)=>a.distance-b.distance)[0];
           if (hit?.distance<24) onPick(hit.id);
         }
-        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
-        drag=null; canvas.classList.remove('is-dragging');
-      };
-      for (const event of ['pointerup','pointercancel','lostpointercapture']) canvas.addEventListener(event,endDrag);
+      });
       canvas.addEventListener('keydown',event=>{
         const delta={ArrowLeft:[-.2,0],ArrowRight:[.2,0],ArrowUp:[0,-.2],ArrowDown:[0,.2]}[event.key];
         if (delta) {event.preventDefault();yaw+=delta[0];pitch=clamp(pitch+delta[1],-1.45,1.45);paint();onRotate();}
@@ -192,7 +249,8 @@
         paint();
       },
       rotate(delta) {yaw+=delta;paint();},
-      zoom(delta) {zoom=clamp(zoom+delta,1,1.6);paint();return zoom;},
+      zoom(delta) {return setZoom(zoom+delta);},
+      zoomTo:setZoom,
       resize,
       setOnRotate(fn) {onRotate=fn;}
     };
@@ -201,7 +259,7 @@
   function create({onAdd,onToggle}) {
     const dialog=$('#wish-planet-dialog'),opener=$('#open-wish-planet');
     const preview=globe($('#wish-planet-preview'));
-    const detail=globe($('#wish-planet-large'),id=>select(id,false));
+    const detail=globe($('#wish-planet-large'),id=>select(id,false),renderZoomState);
     let rows=[],signature='',selectedId=null,page=1,filter='all',search='',busy=false;
     let visible=false,frame=null,lastTime=0;
     const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -292,7 +350,7 @@
     }
     opener.addEventListener('click',()=>{
       if (dialog.open) return;
-      dialog.showModal();detail.resize();detail.select(selectedId,true);updateAnimation();
+      dialog.showModal();detail.resize();detail.zoomTo(1.2);detail.select(selectedId,true);updateAnimation();
     });
     dialog.addEventListener('close',()=>{updateAnimation();opener.focus({preventScroll:true});});
     $('#wish-planet-add').addEventListener('click',onAdd);
@@ -311,13 +369,15 @@
     $('#wish-page-prev').addEventListener('click',()=>{page--;renderList();});
     $('#wish-page-next').addEventListener('click',()=>{page++;renderList();});
     $('#wish-rotate-left').addEventListener('click',()=>detail.rotate(-.45));
-    function zoom(delta) {
-      const value=detail.zoom(delta);
+    function renderZoomState(value) {
       $('#wish-zoom-out').disabled=value<=1.001;$('#wish-zoom-in').disabled=value>=1.599;
+      $('#wish-planet-large').setAttribute('aria-label',value<=1.001
+        ? '我们的愿望星球，双指张开或点击加号放大后显示心愿，单指拖动旋转'
+        : '我们的愿望星球，双指缩放，单指旋转，星光旁显示具体心愿');
     }
-    $('#wish-zoom-out').addEventListener('click',()=>zoom(-.2));
-    $('#wish-zoom-in').addEventListener('click',()=>zoom(.2));
-    zoom(0);
+    $('#wish-zoom-out').addEventListener('click',()=>detail.zoom(-.2));
+    $('#wish-zoom-in').addEventListener('click',()=>detail.zoom(.2));
+    renderZoomState(1);
     return {render};
   }
   window.UniverseWishPlanet=Object.freeze({create,maxWishes});

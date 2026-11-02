@@ -28,7 +28,7 @@
 .wish-explorer-summary{font-size:10px;line-height:1.8;color:#aab5a7;margin:10px 0 23px}
 .wish-explorer-layout{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}
 .wish-globe-column{min-width:0;position:sticky;top:0}
-.wish-globe-stage{position:relative;border:1px solid #a9b99c24;background:radial-gradient(ellipse at 45% 40%,#2c454332,#0b162125 73%);border-radius:16px;overflow:hidden;max-width:360px;margin:0 auto}
+.wish-globe-stage{position:relative;touch-action:none;border:1px solid #a9b99c24;background:radial-gradient(ellipse at 45% 40%,#2c454332,#0b162125 73%);border-radius:16px;overflow:hidden;max-width:360px;margin:0 auto}
 .wish-globe-labels{position:absolute;inset:0;pointer-events:none}
 .wish-globe-label{position:absolute;left:0;top:0;pointer-events:auto;min-height:35px;padding:7px 9px;border:1px solid #b5c5ac63;border-radius:6px;background:#152a32f2;color:#dce4ce;box-shadow:0 3px 14px #060e1640;font-family:inherit;font-size:11px;line-height:1.65;text-align:center;overflow-wrap:anywhere;cursor:pointer}
 .wish-globe-label.is-complete{color:#f0d69d;border-color:#dfc48a70;background:#2b302bf2}
