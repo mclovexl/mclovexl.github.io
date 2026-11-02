@@ -535,7 +535,7 @@
       renderSettings(); renderWishes(); renderLetterHistory();
       $('#memory-sync-status').textContent='登录共享相册后，故事、愿望和情书会同步。';
       $('#retry-memories').hidden=true;
-      for (const id of ['settings-dialog','story-dialog','wish-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();
+      for (const id of ['settings-dialog','story-dialog','wish-dialog','wish-planet-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();
       $('#settings-form').reset(); $('#story-form').reset(); $('#wish-form').reset();
       editingStory=null; storyConflictVersion=null;
       $('#letter-paper').hidden=true; $('#open-letter').setAttribute('aria-expanded','false');
@@ -670,44 +670,32 @@
     }
   });
 
-  function renderWishes() {
-    const sky = $('#wish-sky');
-    sky.replaceChildren();
-    const positions = wishes.length > 8
-      ? wishes.map((_, index) => [18 + (index % 3) * 32, 3 + Math.floor(index / 3) * 24])
-      : [[22, 6], [75, 17], [48, 41], [18, 66], [80, 62], [50, 83], [15, 33], [79, 38]];
-    wishes.forEach((wish, index) => {
-      const button = node('button', `wish-star${wish.done ? ' complete' : ''}`);
-      button.type = 'button';
-      const position = positions[index % positions.length];
-      button.style.left = `${position[0]}%`;
-      button.style.top = `${position[1]}%`;
-      button.setAttribute('aria-label', `${wish.text}，${wish.done ? '已实现，点击标为待实现' : '待实现，点击点亮'}`);
-      button.setAttribute('aria-pressed', String(wish.done));
-      button.append(node('span', '', wish.done ? '✦' : '✧'), node('b', '', wish.text));
-      if (wish.done) button.append(node('small', '', '已实现 ✓'));
-      button.addEventListener('click', async () => {
-        if (!requireMemories()) return;
-        const next = wishes.map(item => item.id === wish.id ? { ...item, done: !item.done } : item);
-        memoryWriting=true; memoryMutation++; button.disabled=true;
-        try {
-          if (cloudMode) {
-            await cloud.setSharedWish(wish.id,!wish.done);
-            if (!cloud.state().authorized) return;
-          } else save('wishes', next);
-          wishes = next;
-          renderWishes();
-          if (!wish.done) { celebrate(12); toast('又一颗愿望星，被我们一起点亮了。✦'); }
-          else toast('小愿望重新回到待实现清单。');
-        } catch (err) { toast(err.message || '愿望状态未保存，请重试。'); }
-        finally { memoryWriting=false; button.disabled=false; if (cloudMode) queueMemorySync(); }
-      });
-      sky.append(button);
-    });
-  }
+  const maxWishes = window.UniverseWishPlanet.maxWishes;
+  const wishPlanet = window.UniverseWishPlanet.create({
+    onAdd: () => newWish(),
+    onToggle: async id => {
+      if (!requireMemories()) return false;
+      const wish = wishes.find(item => item.id === id);
+      if (!wish) throw new Error('这个愿望刚刚有了变化，请重新查看');
+      const next = wishes.map(item => item.id === id ? { ...item, done: !item.done } : item);
+      memoryWriting=true; memoryMutation++;
+      try {
+        if (cloudMode) {
+          await cloud.setSharedWish(wish.id,!wish.done);
+          if (!cloud.state().authorized) return false;
+        } else save('wishes', next);
+        wishes = next;
+        renderWishes();
+        if (!wish.done) { celebrate(12); toast('又一颗愿望星，被我们一起点亮了。✦'); }
+        else toast('小愿望重新回到待实现清单。');
+        return true;
+      } finally { memoryWriting=false; if (cloudMode) queueMemorySync(); }
+    }
+  });
+  function renderWishes(options) { wishPlanet.render(wishes, options); }
   const newWish = () => {
     if (!requireMemories()) return;
-    if (wishes.length >= 12) { toast('星空已收藏 12 个愿望，先一起实现它们吧。♡'); return; }
+    if (wishes.length >= maxWishes) { toast('我们的星球已收藏 100 个愿望，一起慢慢点亮它们吧 ♡'); return; }
     $('#wish-form').reset();
     delete $('#wish-form').dataset.pendingId;
     openDialog('#wish-dialog');
@@ -720,6 +708,9 @@
     if (!text) return;
     if (!requireMemories()) return;
     const form=event.currentTarget, submit=$('button[type="submit"]',form);
+    if (wishes.length >= maxWishes && !wishes.some(wish => wish.id === form.dataset.pendingId)) {
+      toast('我们的星球已收藏 100 个愿望，一起慢慢点亮它们吧 ♡'); return;
+    }
     memoryWriting=true; memoryMutation++; submit.disabled=true;
     try {
       const wish={id:form.dataset.pendingId || crypto.randomUUID(),text,done:false};
@@ -728,10 +719,10 @@
         await cloud.addSharedWish(wish);
         if (!cloud.state().authorized) return;
       }
-      const next=[...wishes,wish];
+      const next=wishes.some(item => item.id === wish.id) ? wishes : [...wishes,wish];
       if (!cloudMode) save('wishes',next);
       wishes=next;
-      renderWishes();
+      renderWishes({selectId:wish.id});
       $('#wish-dialog').close();
       $('#wishes').scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth' });
       toast(cloudMode ? '愿望已同步，我们都可以看到。✧' : '宇宙收到我们的愿望啦。✧');

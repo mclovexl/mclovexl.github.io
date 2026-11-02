@@ -12,13 +12,15 @@
   <link rel="stylesheet" href="welcome.css?v=20261028">
   <link rel="stylesheet" href="privileges.css?v=historydelete20261029">
   <link rel="stylesheet" href="music.css?v=oursong20261030">
+  <link rel="stylesheet" href="wishes.css?v=planet20261102">
   <script src="config.js" defer></script>
   <script src="shared-data.js" defer></script>
   <script src="time.js?v=hundred20261027" defer></script>
   <script src="cloud-config.js?v=phonelogin20261030" defer></script>
   <script src="vendor/supabase.js" defer></script>
   <script src="cloud.js?v=phonelogin20261030" defer></script>
-  <script src="app.js?v=lettercenter20261030" defer></script>
+  <script src="wishes.js?v=planet20261102" defer></script>
+  <script src="app.js?v=wishplanet20261102" defer></script>
   <script src="privileges.js?v=historydelete20261029" defer></script>
 </head>
 <body>
@@ -129,7 +131,20 @@
       <button class="game-card date-card" id="open-date" type="button"><span class="game-number">SURPRISE / 03</span><div class="date-preview" aria-hidden="true"><span class="gift-ribbon"></span><span class="gift-box">♡</span><i>✧</i></div><div class="game-card-bottom"><div><h3>约会盲盒</h3><p>把下一次浪漫，交给一点点惊喜。</p></div><span class="game-arrow">↗</span></div></button></div>
     </div></section>
 
-    <section class="wish-section" id="wishes" aria-labelledby="wish-title"><div class="wrap wish-layout"><div><p class="eyebrow"><span>05</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>想和你做的事，数也数不完。<br>先把它们放进星空里，一件一件实现。</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button></div><div class="wish-panel"><div class="wish-sky" id="wish-sky" aria-label="我们的愿望星空"></div><p class="wish-more">✧ 点击星星，点亮已实现的愿望</p></div></div></section>
+    <section class="wish-section" id="wishes" aria-labelledby="wish-title">
+      <div class="wrap wish-layout">
+        <div><p class="eyebrow"><span>05</span> TO OUR INFINITY</p><h2 id="wish-title">让愿望，<br><em>也有我们的名字。</em></h2><p>把想和你做的事，藏进同一颗星球<br>每实现一个愿望，就为我们的宇宙添一束光</p><button class="button button-pink" id="add-wish" type="button">种下一颗愿望星 <span>＋</span></button><p class="wish-capacity" id="wish-capacity">可以收藏 100 个我们的心愿</p></div>
+        <div class="wish-panel wish-planet-panel">
+          <p class="wish-planet-eyebrow">A PLANET FULL OF OUR WISHES</p>
+          <button class="wish-planet-open" id="open-wish-planet" type="button" aria-haspopup="dialog" aria-controls="wish-planet-dialog" aria-label="放大查看我们的愿望星球">
+            <span class="wish-planet-scene" aria-hidden="true"><canvas id="wish-planet-preview"></canvas><span class="wish-planet-orbit-label">ALL OUR LITTLE TOMORROWS</span><span class="wish-planet-moon">✧</span></span>
+            <span class="wish-planet-invitation"><span>我们的愿望星球</span><small>轻触放大 · 让心愿一颗颗发光 <b>↗</b></small></span>
+          </button>
+          <p class="wish-planet-count" id="wish-planet-count" role="status"></p>
+          <div class="wish-planet-legend" aria-hidden="true"><span>✦ 已点亮</span><span>✧ 等我们一起实现</span></div>
+        </div>
+      </div>
+    </section>
 
     <section class="letter-section" id="letter" aria-labelledby="letter-title"><div class="letter-decoration" aria-hidden="true">♡</div><div class="wrap letter-wrap"><p class="eyebrow">A LITTLE LETTER, A LOT OF LOVE</p><h2 id="letter-title">写给<span>小兰</span>的<br><em>一封小小情书</em></h2><p class="letter-lead">有些话，想认真地说给你听</p><button class="envelope-button" id="open-letter" type="button" aria-expanded="false" aria-controls="letter-paper"><span class="envelope-shape"><i></i><b>♡</b></span><span class="envelope-label">拆开这封信 <span>↗</span></span></button><article class="letter-paper" id="letter-paper" hidden><span class="paper-star" aria-hidden="true">✧</span><div id="letter-body"></div><p class="letter-signature">永远偏爱你的，<span data-me>赵管家</span><small>从 <span data-start>2026.06.24</span> 到很久很久以后</small></p></article><p class="forever-promise">我们的故事永远在继续......</p><span class="forever-label">YOU ARE MY ALWAYS & FOREVER.</span></div></section>
   </main>
@@ -140,7 +155,28 @@
   <dialog id="settings-dialog" class="form-dialog" aria-labelledby="letter-editor-title"><form id="settings-form"><div class="dialog-heading"><div><p class="eyebrow" lang="en">A LOVE LETTER TO XIAOLAN</p><h2 id="letter-editor-title">写给小兰的情书</h2></div><button type="button" class="close-dialog" aria-label="关闭情书编辑" data-close>×</button></div><label><textarea name="letter" aria-label="写给小兰的情书" rows="9" maxlength="6000" required></textarea></label><details id="letter-history" class="letter-history" hidden><summary>查看以前的情书</summary><div id="letter-history-list"></div></details><button class="button button-pink form-submit" type="submit">保存情书 <span>♡</span></button></form></dialog>
   <dialog id="upload-dialog" class="form-dialog"><form id="photo-form"><div class="dialog-heading"><div><p class="eyebrow">COLLECT A LITTLE MOMENT</p><h2>收藏我们的照片</h2></div><button type="button" class="close-dialog" aria-label="关闭上传" data-close>×</button></div><label class="upload-zone"><span>＋</span><b>选择我们的小美好</b><small>JPG、PNG、WebP · 可多选，每次最多 12 张</small><input type="file" id="photo-files" accept="image/jpeg,image/png,image/webp" multiple required></label><p id="file-status" class="form-note">照片保存在当前浏览器。</p><label>为这一组照片写句话<input name="title" placeholder="例如：和你一起看日落" maxlength="60" required></label><div class="form-row"><label>属于哪种心动<select name="category"><option>日常可爱</option><option>一起出发</option><option>心动限定</option></select></label><label>拍摄日期（可选）<input type="date" name="date"></label></div><button class="button button-pink form-submit" type="submit" id="photo-submit">放进我们的相册 <span>＋</span></button></form></dialog>
   <dialog id="story-dialog" class="form-dialog" aria-labelledby="story-editor-title"><form id="story-form"><div class="dialog-heading"><div><p class="eyebrow">ANOTHER PAGE OF US</p><h2 id="story-editor-title">续写我们的故事</h2></div><button type="button" class="close-dialog" aria-label="关闭故事编辑" data-close>×</button></div><label>这一天<input type="date" name="date" required></label><label>这一页的名字<input name="title" placeholder="例如：第一次一起去看海" required maxlength="60"></label><label>把回忆写下来<textarea name="body" rows="5" placeholder="那些不想忘记的小细节……" required maxlength="2000"></textarea></label><p id="story-feedback" class="story-feedback" role="status"></p><button id="reload-story" class="text-link" type="button" hidden>载入最新内容</button><button class="button button-pink form-submit" type="submit"><span id="story-submit-text">把这颗星留住</span> <span>✦</span></button></form></dialog>
-  <dialog id="wish-dialog" class="form-dialog small-dialog"><form id="wish-form"><div class="dialog-heading"><div><p class="eyebrow">MAKE A WISH</p><h2>想和你一起……</h2></div><button type="button" class="close-dialog" aria-label="关闭愿望编辑" data-close>×</button></div><label>我们的小心愿<input name="text" required maxlength="40" placeholder="例如：一起看一场海边的日出"></label><p class="form-note">愿望会变成星星。再次点击它，就能点亮「已实现」。</p><button class="button button-pink form-submit" type="submit">让愿望发光 <span>✧</span></button></form></dialog>
+  <dialog id="wish-planet-dialog" class="wish-planet-dialog" aria-labelledby="wish-planet-title">
+    <div class="wish-explorer">
+      <div class="wish-explorer-heading"><div><p class="eyebrow">OUR WISH PLANET</p><h2 id="wish-planet-title">把以后，慢慢点亮</h2></div><button class="close-dialog" type="button" aria-label="收起愿望星球" data-close autofocus>×</button></div>
+      <p class="wish-explorer-summary" id="wish-explorer-summary"></p>
+      <div class="wish-explorer-layout">
+        <div class="wish-globe-column">
+          <div class="wish-globe-stage"><canvas id="wish-planet-large" tabindex="0" role="img" aria-label="我们的愿望星球，星光旁显示心愿内容，拖动或按方向键旋转查看更多"></canvas><div class="wish-globe-labels" id="wish-globe-labels" role="group" aria-label="星球上的心愿内容"></div></div>
+          <div class="wish-globe-tools"><button type="button" id="wish-rotate-left" aria-label="向左旋转愿望星球">↶</button><p>拖动旋转 · 看更多心愿</p><button type="button" id="wish-zoom-out" aria-label="缩小愿望星球">−</button><button type="button" id="wish-zoom-in" aria-label="放大愿望星球">＋</button></div>
+          <div class="wish-selected" id="wish-selected" aria-live="polite"><p class="wish-selected-label" id="wish-selected-label"></p><h3 id="wish-selected-text"></h3><button id="wish-toggle-selected" type="button"></button><p class="wish-action-feedback" id="wish-action-feedback" role="status"></p></div>
+        </div>
+        <div class="wish-catalog">
+          <div class="wish-catalog-heading"><h3>我们的心愿清单</h3><button type="button" id="wish-planet-add" aria-label="添加一个愿望">＋</button></div>
+          <div class="wish-filters" aria-label="筛选愿望"><button type="button" data-wish-filter="all" aria-pressed="true">全部 <span></span></button><button type="button" data-wish-filter="pending" aria-pressed="false">待实现 <span></span></button><button type="button" data-wish-filter="done" aria-pressed="false">已点亮 <span></span></button></div>
+          <label class="wish-search"><span>⌕</span><input id="wish-search" type="search" placeholder="找找我们的心愿" aria-label="搜索愿望" maxlength="40" autocomplete="off"></label>
+          <div class="wish-list" id="wish-list"></div>
+          <nav class="wish-pagination" id="wish-pagination" aria-label="愿望清单分页"><button type="button" id="wish-page-prev" aria-label="愿望上一页">←</button><label>第 <select id="wish-page-select" aria-label="选择愿望页码"></select> / <span id="wish-page-total">1</span> 页</label><button type="button" id="wish-page-next" aria-label="愿望下一页">→</button></nav>
+          <p class="wish-list-count" id="wish-list-count" role="status"></p>
+        </div>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="wish-dialog" class="form-dialog small-dialog"><form id="wish-form"><div class="dialog-heading"><div><p class="eyebrow">MAKE A WISH</p><h2>想和你一起……</h2></div><button type="button" class="close-dialog" aria-label="关闭愿望编辑" data-close>×</button></div><label>我们的小心愿<input name="text" required maxlength="40" placeholder="例如：一起看一场海边的日出"></label><p class="form-note">愿望会汇入我们的星球，点开星球就能查看和点亮</p><button class="button button-pink form-submit" type="submit">让愿望发光 <span>✧</span></button></form></dialog>
   <dialog id="lightbox" class="lightbox" aria-label="照片大图"><button type="button" class="close-dialog lightbox-close" aria-label="关闭大图" data-close>×</button><div class="lightbox-stage"><button type="button" class="lightbox-arrow" id="photo-prev" aria-label="上一张照片">←</button><figure><img id="lightbox-image" src="" alt=""><figcaption><span id="lightbox-caption"></span><small id="lightbox-counter"></small></figcaption><div class="lightbox-actions"><button type="button" id="delete-lightbox-photo" hidden>删除照片</button></div></figure><button type="button" class="lightbox-arrow" id="photo-next" aria-label="下一张照片">→</button></div></dialog>
   <dialog id="photo-delete-dialog" class="form-dialog small-dialog" aria-labelledby="delete-photo-heading"><div class="album-dialog-body"><div class="dialog-heading"><div><p class="eyebrow">KEEP EVERY MEMORY SAFE</p><h2 id="delete-photo-heading">先放进回收站</h2></div><button type="button" class="close-dialog" aria-label="取消删除" data-close>×</button></div><p class="delete-photo-name" id="delete-photo-title"></p><p class="album-dialog-note">这张照片会从共享照片墙移除，并同步到其他设备。原图保留，你可以随时在回收站恢复。</p><p class="album-error" id="delete-photo-feedback" role="alert"></p><div class="album-dialog-actions"><button type="button" class="album-cancel" data-close autofocus>先留着</button><button type="button" class="album-danger" id="confirm-delete-photo">移入回收站</button></div></div></dialog>
   <dialog id="photo-trash-dialog" class="form-dialog trash-dialog" aria-labelledby="trash-heading"><div class="album-dialog-body"><div class="dialog-heading"><div><p class="eyebrow">MEMORIES CAN FIND THEIR WAY BACK</p><h2 id="trash-heading">我们的回收站</h2></div><button type="button" class="close-dialog" aria-label="关闭回收站" data-close>×</button></div><p class="album-dialog-note">这里只显示你自己移入的照片。原图仍私密保留，恢复后会重新出现在共享照片墙。</p><div class="trash-toolbar"><span id="trash-feedback" role="status"></span><button type="button" id="refresh-trash">刷新 ↻</button></div><ul class="trash-photo-list" id="trash-photo-list"></ul><button type="button" class="trash-load-more" id="trash-load-more" hidden>再看一些 ↓</button></div></dialog>
