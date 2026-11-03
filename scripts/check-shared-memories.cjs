@@ -21,7 +21,7 @@ function project() {
       range(start,end){this.start=start;this.end=end;return this;}
       gt(field,value){this.filters.push(row=>row[field]>value);return this;}
       eq(field,value){
-        if(this.table==='universe_stories' && this.operation==='update'){
+        if(['universe_stories','universe_date_ideas'].includes(this.table) && this.operation==='update'){
           assert.ok(['id','revision'].includes(field),'Do not put long story text in URL filters');
         }
         this.filters.push(row=>row[field]===value);return this;
@@ -29,6 +29,7 @@ function project() {
       is(field,value){this.filters.push(row=>row[field]===value);return this;}
       upsert(items){this.operation='upsert';this.items=Array.isArray(items)?items:[items];return this;}
       update(values){this.operation='update';this.values=values;return this;}
+      delete(){this.operation='delete';return this;}
       async run(single=false){
         if(!session || !actor.role) return {data:null,error:{message:'forbidden'}};
         if(failTable===this.table){failTable=null;return {data:null,error:{message:'offline'}};}
@@ -38,14 +39,21 @@ function project() {
             if(!table.has(item.id)){
               if(this.table==='universe_privilege_uses' && [...table.values()].some(row=>row.coupon_key===item.coupon_key && row.status==='pending'))return {data:null,error:{code:'23505'}};
               const created_at=new Date(1700000000000+sequence++).toISOString();
-              table.set(item.id,structuredClone({...(this.table==='universe_stories'?{revision:crypto.randomUUID()}:{}),...(this.table==='universe_privilege_uses'?{status:'pending',responded_at:null}:{}),...item,created_at:item.created_at||created_at}));
+              if(this.table==='universe_story_messages' && !(item.is_origin && item.story_id===null) && !rows('universe_stories').has(item.story_id))return {data:null,error:{code:'23503'}};
+              table.set(item.id,structuredClone({...(['universe_stories','universe_date_ideas'].includes(this.table)?{revision:crypto.randomUUID()}:{}),...(this.table==='universe_privilege_uses'?{status:'pending',responded_at:null}:{}),...item,created_at:item.created_at||created_at,
+                ...(this.table==='universe_date_ideas'?{created_by:actor.id,updated_by:actor.id,updated_at:created_at}:{}),
+                ...(this.table==='universe_story_messages'?{created_by:actor.id,author_role:actor.role,created_at}:{})}));
             }
           }
           return {data:null,error:null};
         }
         let selected=[...table.values()].filter(row=>this.filters.every(filter=>filter(row)));
         if(this.table==='universe_privilege_uses' && this.operation==='update')selected=selected.filter(row=>row.status==='pending' && (this.values.status==='responded' ? actor.role==='owner' : row.created_by===actor.id));
-        if(this.operation==='update') for(const row of selected)Object.assign(row,structuredClone(this.values),this.table==='universe_privilege_uses'?{responded_at:this.values.status==='responded'?new Date().toISOString():null}:{});
+        if(this.operation==='update') for(const row of selected)Object.assign(row,structuredClone(this.values),this.table==='universe_privilege_uses'?{responded_at:this.values.status==='responded'?new Date().toISOString():null}:{},this.table==='universe_date_ideas'?{updated_by:actor.id,updated_at:new Date().toISOString(),revision:crypto.randomUUID()}:{});
+        if(this.operation==='delete'){
+          selected=selected.filter(row=>this.table==='universe_privilege_uses' && row.status==='responded');
+          for(const row of selected)table.delete(row.id);
+        }
         if(this.orderField)selected.sort((a,b)=>String(a[this.orderField]).localeCompare(String(b[this.orderField]))*(this.desc?-1:1));
         selected=selected.slice(this.start,this.end+1);
         return {data:structuredClone(single?(selected[0]||null):selected),error:null};
@@ -134,6 +142,23 @@ async function main(){
   const privilegeRows=await a.listPrivilegeUses();
   assert.equal(privilegeRows.filter(item=>item.status==='responded').length,6);
   for(const id of keptPending)assert.ok(privilegeRows.some(item=>item.id===id),'Old pending calls stay visible');
+  const removedHistory=privilegeRows.find(item=>item.status==='responded');
+  const historyTable=db.rows('universe_privilege_uses'),sizeBeforeDelete=historyTable.size;
+  await assert.rejects(()=>outsider.deletePrivilegeUse(removedHistory.id));
+  db.failOnce('universe_privilege_uses');
+  await assert.rejects(()=>a.deletePrivilegeUse(removedHistory.id));
+  assert.ok(historyTable.has(removedHistory.id),'A failed delete must retain the record');
+  await a.deletePrivilegeUse(removedHistory.id);
+  assert.equal(historyTable.size,sizeBeforeDelete-1);
+  assert.ok(!(await b.listPrivilegeUses()).some(item=>item.id===removedHistory.id));
+  await b.deletePrivilegeUse(removedHistory.id);
+  const partnerRemoved=(await b.listPrivilegeUses()).find(item=>item.status==='responded');
+  await b.deletePrivilegeUse(partnerRemoved.id);
+  assert.ok(!(await a.listPrivilegeUses()).some(item=>item.id===partnerRemoved.id));
+  await assert.rejects(()=>a.deletePrivilegeUse(keptPending[0]));
+  assert.ok(historyTable.has(keptPending[0]),'Pending calls cannot be deleted');
+  await assert.rejects(()=>b.deletePrivilegeUse(secondCall.id));
+  console.log('PASS: both members remove redeemed history; failures preserve records, retries are safe, pending/cancelled calls and outsider access are protected.');
   console.log('PASS: private privilege uses sync; duplicate retries, owner-only responses, own cancellations, failed writes and old pending calls.');
 
   const newStory={id:'22222222-2222-4222-8222-222222222222',date:'2026-10-27',title:'新故事',body:'共同看到'};
@@ -210,5 +235,59 @@ async function main(){
   }
   assert.equal((await a.listSharedMemories()).stories.length,207);
   console.log('PASS: both members edit stories in place; conflicts, retries, validation, immutable authorship, legacy import, shared wishes/letters and 200+ rows.');
+
+  const dateDefaults=[
+    {id:'date-01',title:'一起收藏日落',body:'带上喜欢的饮料，一起慢慢说话',tag:'户外',icon:'☀'},
+    {id:'date-02',title:'一起去散步',body:'走一条没走过的路',tag:'日常',icon:'♡'}
+  ];
+  await a.seedDateIdeas(dateDefaults);await b.seedDateIdeas(dateDefaults);
+  const originalDate=(await a.listDateIdeas()).find(idea=>idea.id==='date-01');
+  assert.equal((await b.listDateIdeas()).length,2);
+  const originalDateAuthor=db.rows('universe_date_ideas').get('date-01').created_by;
+  const dateEdit={...dateDefaults[0],body:'小兰想带上登山杖一起去徒步'};
+  const editedDate=await b.saveDateIdea(dateEdit,originalDate.revision);
+  assert.notEqual(editedDate.revision,originalDate.revision);
+  await a.seedDateIdeas(dateDefaults);
+  assert.equal((await a.listDateIdeas()).find(idea=>idea.id==='date-01').body,dateEdit.body);
+  assert.equal(db.rows('universe_date_ideas').get('date-01').created_by,originalDateAuthor);
+  assert.equal(db.rows('universe_date_ideas').get('date-01').updated_by,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+  await b.saveDateIdea(dateEdit,originalDate.revision); // exact retry after a lost response
+  await assert.rejects(()=>a.saveDateIdea({...dateEdit,body:'过期版本不能覆盖'},originalDate.revision),error=>error.name==='DateIdeaConflict'&&error.latestIdea.body===dateEdit.body);
+  db.failOnce('universe_date_ideas');
+  await assert.rejects(()=>a.saveDateIdea({...dateEdit,body:'断网时保留'},editedDate.revision));
+  assert.equal((await b.listDateIdeas()).find(idea=>idea.id==='date-01').body,dateEdit.body);
+  const customDate={id:crypto.randomUUID(),title:'一起去麦霸',body:'听小兰唱歌',tag:'音乐夜',icon:'♫'};
+  await a.saveDateIdea(customDate);await a.saveDateIdea(customDate);
+  assert.equal((await b.listDateIdeas()).length,3);
+  for(const idea of [{...customDate,title:' '},{...customDate,body:'字'.repeat(601)},{...customDate,title:'字'.repeat(41)},{...customDate,icon:'<script>'}])await assert.rejects(()=>a.saveDateIdea(idea));
+  await assert.rejects(()=>outsider.listDateIdeas());await assert.rejects(()=>outsider.seedDateIdeas(dateDefaults));await assert.rejects(()=>outsider.saveDateIdea(customDate));
+
+  const originMessage={id:crypto.randomUUID(),storyKey:'origin',body:'小兰，每一段回忆都还想再讲给你听'};
+  const reply={id:crypto.randomUUID(),storyKey:newStory.id,body:'管家，那天我也很开心 ♡'};
+  const sent=await a.addStoryMessage(originMessage),replied=await b.addStoryMessage(reply);
+  assert.equal(sent.author_role,'owner');assert.equal(replied.author_role,'partner');
+  assert.equal(sent.created_by,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assert.equal(replied.story_id,newStory.id);assert.equal(sent.is_origin,true);
+  await a.addStoryMessage(originMessage);
+  assert.equal((await b.listStoryMessages()).length,2,'retry must not duplicate a message');
+  assert.equal(JSON.stringify(await a.listStoryMessages()),JSON.stringify(await b.listStoryMessages()));
+  await assert.rejects(()=>b.addStoryMessage(originMessage));
+  await assert.rejects(()=>outsider.listStoryMessages());await assert.rejects(()=>outsider.addStoryMessage(originMessage));
+  for(const message of [{...reply,id:'invalid'},{...reply,id:crypto.randomUUID(),storyKey:'missing'},{...reply,id:crypto.randomUUID(),body:' '}])await assert.rejects(()=>a.addStoryMessage(message));
+  await assert.rejects(()=>a.addStoryMessage({...reply,id:crypto.randomUUID(),storyKey:crypto.randomUUID()}),'a missing story is not a valid message target');
+  const retryMessage={id:crypto.randomUUID(),storyKey:'origin',body:'网络恢复后再送给你'};
+  db.failOnce('universe_story_messages');await assert.rejects(()=>a.addStoryMessage(retryMessage));
+  await a.addStoryMessage(retryMessage);await a.addStoryMessage(retryMessage);
+  assert.equal((await b.listStoryMessages()).filter(row=>row.id===retryMessage.id).length,1);
+  const longMessage={id:crypto.randomUUID(),storyKey:'origin',body:'把很长的话慢慢说给你听 ♡\n'.repeat(2000).trim()};
+  await a.addStoryMessage(longMessage);
+  assert.equal((await b.listStoryMessages()).find(row=>row.id===longMessage.id).body,longMessage.body,'long messages must sync without a character limit or truncation');
+  for(let i=0;i<205;i++){
+    const id='10000000-0000-4000-8000-'+String(i).padStart(12,'0');
+    db.rows('universe_story_messages').set(id,{id,is_origin:true,story_id:null,body:'较早的留言',created_by:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',author_role:'owner',created_at:new Date(1600000000000+i).toISOString()});
+  }
+  assert.equal((await a.listStoryMessages()).length,209);
+  await b.logout();await assert.rejects(()=>b.listStoryMessages());await assert.rejects(()=>b.listDateIdeas());
+  console.log('PASS: two-person editable date boxes, seed preservation, conflicts, safe retries, story-linked messages, author labels, validation, logout and 200+ messages.');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});
