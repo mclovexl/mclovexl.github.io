@@ -49,6 +49,7 @@
   let editingStory = null, storyConflictVersion = null;
   let pendingDelete = null, photoMutation = false;
   let trashPhotos = [], trashRequest = 0, trashHasMore = false;
+  let timelineSignature = '';
 
   function toast(text) {
     const el = $('#toast');
@@ -591,7 +592,12 @@
       ...customStories.map(story => ({ ...story, tag: '属于我们的回忆', icon: '✧' }))
     ].sort((a, b) => a.date.localeCompare(b.date));
     entries.push({ date: 'THE NEXT LITTLE ADVENTURE', title: '下一次，想和你一起出发', body: '去哪里都好，身边是你就好。\n这一页，等我们一起写下。', tag: '未来计划 · 待我们书写', icon: '↗', future: true }, { date: 'TO BE CONTINUED · ∞', title: '还有好多好多的以后', body: '故事还在继续，主角一直是我们。', tag: '未完待续', icon: '∞', future: true });
+    const signature=JSON.stringify([cloudMode?cloud.state().userId:null,entries]);
+    if (signature===timelineSignature) return;
+    timelineSignature=signature;
     const timeline = $('#timeline');
+    const focused=timeline.contains(document.activeElement)?document.activeElement:null;
+    const selection=focused?.tagName==='TEXTAREA'?[focused.selectionStart,focused.selectionEnd]:null;
     timeline.replaceChildren();
     entries.forEach(story => {
       const item = node('article', `timeline-item${story.future ? ' future' : ''}`);
@@ -607,9 +613,11 @@
         const actions=node('div','story-actions');
         actions.append(edit); card.append(actions);
       }
+      if (!story.future) together.mountStoryMessages(card,story.id || 'origin');
       item.append(date, card);
       timeline.append(item);
     });
+    if (focused?.isConnected) {focused.focus({preventScroll:true});if(selection)focused.setSelectionRange(...selection);}
   }
   function openStoryEditor(story = null) {
     if (!requireMemories()) return;
@@ -887,29 +895,8 @@
     ['一起去麦霸', '挑一个开心的日子，听小兰唱无比美妙的歌曲，一起去K歌', '分享心动 / 音乐夜', '♫'],
     ['一起看一次日出', '提前看好天气和交通，备好外套与早餐。去迎接一个从第一束光开始，就在一起的日子。', '迎接明天 / 户外', '☀']
   ];
-  let lastDateIdea = -1;
-  function openDate() {
-    const content = startGame('约会盲盒', 'SURPRISE / 03 · OUR NEXT DATE');
-    const panel = node('div', 'date-surprise');
-    const icon = node('div', 'surprise-icon', '✧');
-    const tag = node('span', 'date-tag', 'FOR THE TWO OF US');
-    const title = node('h3', '', '下一次，和你做什么呢？');
-    const body = node('p', '', '宇宙准备了一点小小的浪漫。拆开看看，哪一个会成为我们的下一页。');
-    const draw = node('button', 'button button-pink', '拆开我们的惊喜 ↗');
-    draw.type = 'button';
-    draw.addEventListener('click', () => {
-      let index;
-      do { index = Math.floor(Math.random() * dateIdeas.length); } while (index === lastDateIdea);
-      lastDateIdea = index;
-      const idea = dateIdeas[index];
-      [title.textContent, body.textContent, tag.textContent, icon.textContent] = idea;
-      draw.textContent = '再拆一份浪漫 ↻';
-      celebrate(10);
-    });
-    panel.append(icon, tag, title, body, draw);
-    content.append(panel);
-  }
-  $('#open-date').addEventListener('click', openDate);
+  const together=window.UniverseTogether.create({cloud,defaults:dateIdeas,onLogin:showAccount,notify:toast,celebrate});
+  $('#open-date').addEventListener('click',()=>{gameCleanup();together.openDate();});
 
   $('#open-letter').addEventListener('click', () => {
     const paper = $('#letter-paper');

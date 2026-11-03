@@ -318,6 +318,73 @@
     if (current!==revision) throw failure('登录状态已改变，请重新同步');
     if (error || !data) throw failure('愿望状态未保存，请检查网络后重试');
   }
+  const dateIdeaFields='id,title,body,tag,icon,revision,created_at,updated_at';
+  const storyMessageFields='id,story_id,is_origin,body,created_by,author_role,created_at';
+  const dateIcons=new Set(['☀','☾','↗','⛰','✧','♡','∞','♫','🎁','✦']);
+  function checkedDateIdea(idea) {
+    if (!idea || !/^[a-zA-Z0-9-]{1,80}$/.test(idea.id || '') ||
+        typeof idea.title!=='string' || !idea.title.trim() || idea.title.trim().length>40 ||
+        typeof idea.body!=='string' || !idea.body.trim() || idea.body.trim().length>600 ||
+        typeof idea.tag!=='string' || !idea.tag.trim() || idea.tag.trim().length>30 || !dateIcons.has(idea.icon))
+      throw failure('请填写完整的约会主题、分类和内容');
+    return {id:idea.id,title:idea.title.trim(),body:idea.body.trim(),tag:idea.tag.trim(),icon:idea.icon};
+  }
+  async function seedDateIdeas(defaults) {
+    requireAccess();
+    const current=revision;
+    const rows=defaults.map(checkedDateIdea);
+    const {error}=await client.from('universe_date_ideas').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('暂时无法准备我们的约会盲盒，请稍后重试');
+  }
+  async function listDateIdeas() {
+    return readSharedRows('universe_date_ideas',dateIdeaFields);
+  }
+  async function saveDateIdea(idea,expectedRevision=null) {
+    requireAccess();
+    const current=revision,payload=checkedDateIdea(idea);
+    if (expectedRevision) {
+      const {data,error}=await client.from('universe_date_ideas')
+        .update({title:payload.title,body:payload.body,tag:payload.tag,icon:payload.icon,revision:crypto.randomUUID()})
+        .eq('id',payload.id).eq('revision',expectedRevision).select(dateIdeaFields).maybeSingle();
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      if (error) throw failure('约会暂时未保存，请检查网络后重试');
+      if (data) return data;
+    } else {
+      const {error}=await client.from('universe_date_ideas').upsert([payload],{onConflict:'id',ignoreDuplicates:true});
+      if (current!==revision) throw failure('登录状态已改变，请重新同步');
+      if (error) throw failure('约会暂时未保存，请检查网络后重试');
+    }
+    const latest=await client.from('universe_date_ideas').select(dateIdeaFields).eq('id',payload.id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (latest.error) throw failure('暂时无法确认约会是否保存，请稍后重试');
+    if (latest.data && ['title','body','tag','icon'].every(key=>latest.data[key]===payload[key])) return latest.data;
+    const conflict=failure('另一台设备刚修改了这份约会，你写的内容仍然保留');
+    conflict.name='DateIdeaConflict';conflict.latestIdea=latest.data || null;throw conflict;
+  }
+  async function listStoryMessages() {
+    const rows=await readSharedRows('universe_story_messages',storyMessageFields);
+    return rows.sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id));
+  }
+  async function addStoryMessage(message) {
+    requireAccess();
+    const current=revision,author=session.user.id;
+    const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!message || !uuid.test(message.id || '') ||
+        (message.storyKey!=='origin' && !uuid.test(message.storyKey || '')) ||
+        typeof message.body!=='string' || !message.body.trim())
+      throw failure('写下想对彼此说的话');
+    const payload={id:message.id,story_id:message.storyKey==='origin'?null:message.storyKey,is_origin:message.storyKey==='origin',body:message.body.trim()};
+    const {error}=await client.from('universe_story_messages').upsert([payload],{onConflict:'id',ignoreDuplicates:true});
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    if (error) throw failure('留言暂时未送达，文字已经保留，请稍后重试');
+    const saved=await client.from('universe_story_messages').select(storyMessageFields).eq('id',message.id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新同步');
+    const row=saved.data;
+    if (saved.error || !row || row.body!==payload.body || row.created_by!==author || row.story_id!==payload.story_id || row.is_origin!==payload.is_origin)
+      throw failure('暂时无法确认这条留言，请稍后重试');
+    return row;
+  }
   async function saveSharedLetter(body,expectedRevision) {
     requireAccess();
     const current=revision, author=session.user.id, nextRevision=crypto.randomUUID();
@@ -416,5 +483,5 @@
     pendingInvite=null;
     await login(result.email,password);
   }
-  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,deletePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
+  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,seedDateIdeas,listDateIdeas,saveDateIdea,listStoryMessages,addStoryMessage,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,deletePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
 })();

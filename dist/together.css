@@ -1,0 +1,70 @@
+/* Small shared notes and dates, in the same paper-and-starlight palette. */
+.together-dialog-body{padding:30px}
+.date-box-dialog{width:min(620px,calc(100% - 40px))}
+.date-box-dialog .date-surprise{padding:18px 15px 20px}
+.date-box-dialog .date-surprise .surprise-icon{font-size:76px}
+.date-box-dialog .date-surprise>p{max-width:460px;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.date-box-dialog .date-surprise h3{font-size:27px;overflow-wrap:anywhere}
+.date-edit-toolbar{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;padding-top:16px;border-top:1px solid #d4c6ad70}
+.date-edit-toolbar .text-link{font-size:11px;min-height:40px;padding:7px 0}
+.together-sync-note{color:#978b75;text-align:center;font-size:10px;line-height:1.9;margin:15px 0 0}
+#date-sync-retry{display:block;margin:10px auto 0;font-size:11px}
+#date-sync-retry[hidden],#edit-drawn-date[hidden],#reload-date-idea[hidden]{display:none}
+.date-manage-dialog{width:min(740px,calc(100% - 40px))}
+.date-manage-toolbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin:20px 0}
+.date-manage-toolbar .button{min-height:42px;padding:10px 18px;gap:24px;font-size:12px}
+.date-manage-toolbar .text-link{min-height:40px;font-size:11px}
+.date-idea-list{display:grid;gap:12px;max-height:53dvh;overflow:auto;padding:3px 6px 4px 0;scrollbar-color:#c0b39c #f4f0e8}
+.date-idea-card{display:grid;grid-template-columns:30px minmax(0,1fr) 48px;align-items:start;gap:14px;padding:18px;background:#fffaf1;border:1px solid #ded3bf;border-radius:7px}
+.date-idea-icon{font:28px Georgia,serif;color:#b0916c;line-height:1.3;text-align:center;padding-top:4px}
+.date-idea-copy{min-width:0}
+.date-idea-copy small{color:#a08d72;font-size:9px;letter-spacing:.5px;line-height:1.7}
+.date-idea-copy h3{font:20px var(--serif);line-height:1.7;color:#655f4f;margin:6px 0 9px;overflow-wrap:anywhere}
+.date-idea-copy p{font-size:11px;line-height:1.9;color:#93816b;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.date-idea-edit{padding:8px 5px;min-height:40px;border:1px solid #cdbc9f;border-radius:4px;background:transparent;color:#9c7b62;font-size:11px}
+.date-idea-edit:hover{background:#eadfce66}
+.together-feedback{font-size:11px;line-height:1.9;color:#9e6e52;margin:16px 0 0;overflow-wrap:anywhere}
+.together-feedback:empty{display:none}
+#date-edit-form textarea{line-height:1.9}
+#date-edit-form .form-note{line-height:1.9}
+#reload-date-idea{font-size:10px;line-height:1.8;margin-top:12px;text-align:left}
+.story-messages{position:relative;z-index:1;border-top:1px solid #d9cbb761;margin-top:22px;padding-top:14px;text-align:left}
+.story-message-controls{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.story-message-toggle{display:flex;align-items:center;justify-content:center;gap:8px;color:#a27e64;font-size:11px;line-height:1.8;min-height:40px;cursor:pointer;padding:7px 12px;border:1px solid #d7c8b294;background:#f1eadd66;border-radius:5px;user-select:none}
+.story-message-toggle:after{content:"＋";font-size:13px;color:#b69a7d}
+.story-message-toggle[aria-expanded="true"]{background:#e9ddcc80;border-color:#c5aa8c}
+.story-message-toggle[aria-expanded="true"]:after{content:"−"}
+.story-message-toggle:hover{background:#e9ddcc80}
+.story-messages-count{color:#ab9c83;background:#e9dfce7d;border-radius:20px;font-size:9px;padding:2px 8px}
+.story-messages-content{padding-top:16px}
+.message-history-panel:not([hidden])+.message-compose-panel:not([hidden]){border-top:1px dashed #d9cbb782;margin-top:16px}
+.story-message-tools{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.message-sync-note{font-size:10px;line-height:1.9;color:#a38c70;margin:0;overflow-wrap:anywhere}
+.message-sync-note:empty{display:none}
+.message-refresh{font-size:10px;line-height:1.8;color:#ab8b6e;background:transparent;border:0;padding:5px 0;white-space:nowrap;margin-left:auto;min-height:30px}
+.story-message-list{display:grid;gap:10px;max-height:min(340px,45dvh);overflow:auto;padding-right:4px;scrollbar-color:#c0b39c #f4f0e8;overscroll-behavior:contain}
+.story-message{padding:13px 15px;background:#eee6d645;border:1px solid #e0d5bf82;border-radius:0 9px 9px 9px}
+.story-message.is-mine{background:#edd4c62d;border-color:#d7b9a85c;border-radius:9px 0 9px 9px}
+.story-message-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;color:#b69a7b}
+.story-message-meta b{font-size:10px;color:#a27e64;font-weight:500}
+.story-message-meta time{font-size:8px;white-space:nowrap;letter-spacing:.3px}
+.story-message p{font-size:12px;color:#8f785f;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.story-messages-empty{font-size:11px;color:#b09b7b;line-height:1.9;padding:9px 0;margin:0}
+.message-more,.message-login{background:transparent;color:#a78364;border:0;font-size:10px;line-height:1.8;padding:8px 0;min-height:34px;text-align:left}
+.message-more{margin:0 0 10px}
+.message-login{font-size:11px;width:100%;padding:8px 0}
+.story-message-form{margin-top:0}
+.story-message-form label{display:block}
+.message-to{display:block;font-size:10px;color:#ad8b6b;margin-bottom:9px}
+.story-message-form textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:90px;max-height:300px;border:1px solid #d6c5a9;border-radius:5px;padding:11px 12px;font-family:inherit;font-size:12px;line-height:1.9;background:#fffcf6;color:#846f56}
+.story-message-form textarea:focus{outline:1px solid #b58d71;outline-offset:2px}
+.story-message-form textarea::placeholder{color:#bcad94;font-size:11px}
+.story-message-form-footer{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:10px}
+.message-send{min-height:40px;padding:9px 14px;border:1px solid #d1aa91;background:#eed0bf;color:#795d47;font-size:11px;border-radius:4px;line-height:1.7}
+.message-send:disabled{opacity:.55;cursor:wait}
+.message-feedback{font-size:10px;color:#a67f60;line-height:1.9;margin:10px 0 0;overflow-wrap:anywhere}
+.message-feedback:empty{display:none}
+.story-note:has(.story-messages)>.story-illustration{top:22px;bottom:auto;opacity:.15;pointer-events:none}
+.story-messages [hidden]{display:none!important}
+.story-message-toggle:focus-visible,.date-idea-edit:focus-visible{outline:2px solid #b68573;outline-offset:4px}
+@media(max-width:700px){.together-dialog-body{padding:23px}.date-box-dialog,.date-manage-dialog{width:calc(100% - 24px)}.date-box-dialog .date-surprise{padding:15px 0 23px}.date-box-dialog .date-surprise h3{font-size:25px}.date-box-dialog .date-surprise>p{font-size:12px;line-height:2}.date-edit-toolbar{gap:17px}.date-edit-toolbar .text-link{min-height:44px;font-size:11px}.date-manage-toolbar .button{font-size:11px;min-height:44px;gap:16px;padding:8px 13px}.date-idea-list{max-height:52dvh}.date-idea-card{grid-template-columns:24px minmax(0,1fr) 44px;gap:10px;padding:14px 12px}.date-idea-icon{font-size:25px}.date-idea-copy h3{font-size:18px}.date-idea-copy p{font-size:11px}.date-idea-edit{min-height:44px}.story-message-toggle{font-size:11px;min-height:44px;padding:7px 10px}.story-message-controls{gap:8px}.story-messages{margin-top:19px;padding-top:12px}.story-message{padding:12px}.story-message p{font-size:12px}.story-message-meta b{font-size:11px}.story-message-meta time{font-size:9px}.story-message-form textarea{font-size:16px;min-height:100px}.story-message-form textarea::placeholder{font-size:12px}.message-send{min-height:44px;font-size:11px;padding:9px 12px}.message-refresh,.message-more,.message-login{min-height:40px}.message-feedback,.message-sync-note{font-size:10px}.together-sync-note{font-size:9px}}
