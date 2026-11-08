@@ -171,13 +171,14 @@
   // Stories, wishes and letters use the same two-person membership as photos.
   // Read by a stable primary-key cursor so the Data API's row cap does not
   // silently hide older memories.
-  async function readSharedRows(table, fields) {
+  async function readSharedRows(table, fields, filter = null) {
     requireAccess();
     const current=revision;
     const rows=[];
     let cursor=null;
     while (true) {
       let query=client.from(table).select(fields).order('id',{ascending:true}).range(0,199);
+      if (filter) query=filter(query);
       if (cursor) query=query.gt('id',cursor);
       const {data,error}=await query;
       if (current!==revision) throw failure('登录状态已改变，请重新同步');
@@ -385,6 +386,64 @@
       throw failure('暂时无法确认这条留言，请稍后重试');
     return row;
   }
+  const mailHeaderFields='id,title,created_by,author_role,created_at';
+  const mailReplyFields='id,letter_id,is_original,body,created_by,author_role,created_at';
+  const mailUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  function mailTarget(query, key) {
+    return key==='original' ? query.eq('is_original',true) : query.eq('letter_id',key);
+  }
+  async function listMailbox() {
+    const [letters,replies]=await Promise.all([
+      readSharedRows('universe_mail_letters',mailHeaderFields),
+      readSharedRows('universe_mail_replies','id,letter_id,is_original')
+    ]);
+    return {letters:letters.sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id)),replies};
+  }
+  async function readMailboxLetter(id) {
+    requireAccess();
+    if (!mailUuid.test(id||'')) throw failure('这封信暂时没有找到，请刷新信箱');
+    const current=revision;
+    const {data,error}=await client.from('universe_mail_letters').select(mailHeaderFields+',body').eq('id',id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新打开信箱');
+    if (error || !data) throw failure('暂时没有取到这封信，请检查网络后重试');
+    return data;
+  }
+  async function listMailReplies(key) {
+    if (key!=='original' && !mailUuid.test(key||'')) throw failure('请先打开一封信');
+    const rows=await readSharedRows('universe_mail_replies',mailReplyFields,query=>mailTarget(query,key));
+    return rows.sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id));
+  }
+  async function sendMail(letter) {
+    requireAccess();
+    if (!letter || !mailUuid.test(letter.id||'') || typeof letter.title!=='string' ||
+        !letter.title.trim() || letter.title.trim().length>80 || typeof letter.body!=='string' || !letter.body.trim())
+      throw failure('给这封信起个名字，再写下想说的话');
+    const current=revision,author=session.user.id;
+    const payload={id:letter.id,title:letter.title.trim(),body:letter.body.trim()};
+    const {error}=await client.from('universe_mail_letters').upsert([payload],{onConflict:'id',ignoreDuplicates:true});
+    if (current!==revision) throw failure('登录状态已改变，请重新打开信箱');
+    if (error) throw failure('这封信暂时未寄出，你写的文字仍然保留');
+    const saved=await readMailboxLetter(letter.id);
+    if (saved.created_by!==author || saved.title!==payload.title || saved.body!==payload.body)
+      throw failure('暂时无法确认寄信结果，请保留文字后重试');
+    return saved;
+  }
+  async function sendMailReply(reply) {
+    requireAccess();
+    if (!reply || !mailUuid.test(reply.id||'') || (reply.letterKey!=='original' && !mailUuid.test(reply.letterKey||'')) ||
+        typeof reply.body!=='string' || !reply.body.trim()) throw failure('写下想回给彼此的话');
+    const current=revision,author=session.user.id;
+    const payload={id:reply.id,letter_id:reply.letterKey==='original'?null:reply.letterKey,is_original:reply.letterKey==='original',body:reply.body.trim()};
+    const {error}=await client.from('universe_mail_replies').upsert([payload],{onConflict:'id',ignoreDuplicates:true});
+    if (current!==revision) throw failure('登录状态已改变，请重新打开信箱');
+    if (error) throw failure('这封回信暂时未寄出，你写的文字仍然保留');
+    const saved=await client.from('universe_mail_replies').select(mailReplyFields).eq('id',reply.id).maybeSingle();
+    if (current!==revision) throw failure('登录状态已改变，请重新打开信箱');
+    const row=saved.data;
+    if (saved.error || !row || row.created_by!==author || row.body!==payload.body || row.letter_id!==payload.letter_id || row.is_original!==payload.is_original)
+      throw failure('暂时无法确认回信结果，请保留文字后重试');
+    return row;
+  }
   async function saveSharedLetter(body,expectedRevision) {
     requireAccess();
     const current=revision, author=session.user.id, nextRevision=crypto.randomUUID();
@@ -483,5 +542,5 @@
     pendingInvite=null;
     await login(result.email,password);
   }
-  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,seedDateIdeas,listDateIdeas,saveDateIdea,listStoryMessages,addStoryMessage,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,deletePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
+  window.UniverseCloud={enabled,configured,state,init,login,logout,listPhotos,listTrashedPhotos,movePhotoToTrash,restorePhoto,addPhotos,migrateSharedMemories,listSharedMemories,promoteLegacyLetter,addSharedStory,updateSharedStory,addSharedWish,setSharedWish,seedDateIdeas,listDateIdeas,saveDateIdea,listStoryMessages,addStoryMessage,listMailbox,readMailboxLetter,listMailReplies,sendMail,sendMailReply,saveSharedLetter,listPrivilegeUses,usePrivilege,changePrivilegeUse,deletePrivilegeUse,inspectInvite,enroll,subscribe(listener){listeners.add(listener);return()=>listeners.delete(listener);}};
 })();

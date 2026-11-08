@@ -95,7 +95,7 @@
     const [y, m, d] = settings.startDate.split('-').map(Number);
     $$('[data-start-chinese]').forEach(el => el.textContent = `${String(y).slice(-2)} 年 ${m} 月 ${d} 日`);
     $$('[data-promise]').forEach(el => el.textContent = settings.promise);
-    $('#letter-body').textContent = settings.letter;
+    mailbox.updateOriginal();
     document.title = `你就是我的宇宙 · ${settings.me} × ${settings.her}`;
     $('meta[name="description"]').content = `${settings.me}与${settings.her}的专属小宇宙。从 ${dotted(settings.startDate)}，到每一个永远。`;
     renderClock();
@@ -539,7 +539,6 @@
       for (const id of ['settings-dialog','story-dialog','wish-dialog','wish-planet-dialog']) if ($(`#${id}`).open) $(`#${id}`).close();
       $('#settings-form').reset(); $('#story-form').reset(); $('#wish-form').reset();
       editingStory=null; storyConflictVersion=null;
-      $('#letter-paper').hidden=true; $('#open-letter').setAttribute('aria-expanded','false');
       photos=base.photos;
       currentPhotoPage=1;
       renderPhotos();
@@ -897,15 +896,8 @@
   ];
   const together=window.UniverseTogether.create({cloud,defaults:dateIdeas,onLogin:showAccount,notify:toast,celebrate});
   $('#open-date').addEventListener('click',()=>{gameCleanup();together.openDate();});
-
-  $('#open-letter').addEventListener('click', () => {
-    const paper = $('#letter-paper');
-    const isOpening = paper.hidden;
-    paper.hidden = !isOpening;
-    $('#open-letter').setAttribute('aria-expanded', String(isOpening));
-    $('.envelope-label').textContent = isOpening ? '把这封信好好收起 ♡' : '拆开这封信 ↗';
-    if (isOpening) { celebrate(24); paper.scrollIntoView({ behavior: reducedMotion ? 'instant' : 'smooth', block: 'center' }); }
-  });
+  const mailbox=window.UniverseMailbox.create({cloud,onLogin:showAccount,notify:toast,celebrate,
+    getOriginal:()=>({body:settings.letter,ready:memoriesReady,sender:settings.me})});
   let centralClicks = 0;
   $('#center-star').addEventListener('click', () => {
     centralClicks++;
