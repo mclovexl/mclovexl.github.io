@@ -10,7 +10,9 @@
     localStorage.setItem('our-universe-v1:settings',JSON.stringify({letter:'这是一封本机旧情书测试。'}));
     localStorage.setItem('qa-legacy-seeded','yes');
   }
+  let offline=false;
   const request=async payload=>{
+    if(offline)throw new Error('本地模拟：网络未连接');
     const response=await fetch('/__qa_api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     return response.json();
   };
@@ -27,6 +29,7 @@
     not(field,op,value){this.filters.push({op:'not',field,value});return this;}
     upsert(value){this.operation='upsert';this.value=value;return this;}
     update(value){this.operation='update';this.value=value;return this;}
+    delete(){this.operation='delete';return this;}
     async run(single=false){
       if(!session)return {data:null,error:{message:'not signed in'}};
       return request({table:this.table,operation:this.operation,filters:this.filters,orders:this.orders,actor:owner?'owner':'partner',userId:user.id,
@@ -45,4 +48,11 @@
     async rpc(){return {data:owner?'owner':'partner',error:null};},
     from(table){return new Query(table);}
   })};
+  document.addEventListener('DOMContentLoaded',()=>{
+    const bar=document.createElement('div');
+    bar.style='position:fixed;bottom:7px;left:7px;z-index:99999;padding:6px 9px;border:1px solid #b9ab93;background:#fff9e9;color:#8b6554;font:10px/1.8 sans-serif;border-radius:4px;max-width:calc(100vw - 14px)';
+    bar.append('本地双人演示 · '+(owner?'管家':'小兰')+'视角 · ');
+    const link=document.createElement('a');link.textContent=owner?'打开小兰视角':'打开管家视角';link.href='http://127.0.0.1:'+(owner?4179:4178)+'/'+(location.hash||'#story');link.target='_blank';bar.append(link,' · ');
+    const label=document.createElement('label'),toggle=document.createElement('input');toggle.type='checkbox';toggle.setAttribute('aria-label','模拟断网');toggle.addEventListener('change',()=>{offline=toggle.checked;});label.append(toggle,'模拟断网');bar.append(label);document.body.append(bar);
+  });
 })();

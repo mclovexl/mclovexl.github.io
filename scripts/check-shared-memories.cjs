@@ -16,7 +16,7 @@ function project() {
     const listeners=[];
     class Query {
       constructor(table){this.table=table;this.operation='select';this.filters=[];this.start=0;this.end=Infinity;this.desc=false;}
-      select(){return this;}
+      select(fields){if(this.table.startsWith('universe_mail_'))this.fields=fields;return this;}
       order(field,opts){this.orderField=field;this.desc=opts?.ascending===false;return this;}
       range(start,end){this.start=start;this.end=end;return this;}
       gt(field,value){this.filters.push(row=>row[field]>value);return this;}
@@ -40,9 +40,10 @@ function project() {
               if(this.table==='universe_privilege_uses' && [...table.values()].some(row=>row.coupon_key===item.coupon_key && row.status==='pending'))return {data:null,error:{code:'23505'}};
               const created_at=new Date(1700000000000+sequence++).toISOString();
               if(this.table==='universe_story_messages' && !(item.is_origin && item.story_id===null) && !rows('universe_stories').has(item.story_id))return {data:null,error:{code:'23503'}};
+              if(this.table==='universe_mail_replies' && !(item.is_original && item.letter_id===null) && !rows('universe_mail_letters').has(item.letter_id))return {data:null,error:{code:'23503'}};
               table.set(item.id,structuredClone({...(['universe_stories','universe_date_ideas'].includes(this.table)?{revision:crypto.randomUUID()}:{}),...(this.table==='universe_privilege_uses'?{status:'pending',responded_at:null}:{}),...item,created_at:item.created_at||created_at,
                 ...(this.table==='universe_date_ideas'?{created_by:actor.id,updated_by:actor.id,updated_at:created_at}:{}),
-                ...(this.table==='universe_story_messages'?{created_by:actor.id,author_role:actor.role,created_at}:{})}));
+                ...(['universe_story_messages','universe_mail_letters','universe_mail_replies'].includes(this.table)?{created_by:actor.id,author_role:actor.role,created_at}:{})}));
             }
           }
           return {data:null,error:null};
@@ -56,6 +57,7 @@ function project() {
         }
         if(this.orderField)selected.sort((a,b)=>String(a[this.orderField]).localeCompare(String(b[this.orderField]))*(this.desc?-1:1));
         selected=selected.slice(this.start,this.end+1);
+        if(this.fields && this.fields!=='*')selected=selected.map(row=>Object.fromEntries(this.fields.split(',').map(field=>[field,row[field]])));
         return {data:structuredClone(single?(selected[0]||null):selected),error:null};
       }
       maybeSingle(){return this.run(true);}
@@ -290,4 +292,56 @@ async function main(){
   await b.logout();await assert.rejects(()=>b.listStoryMessages());await assert.rejects(()=>b.listDateIdeas());
   console.log('PASS: two-person editable date boxes, seed preservation, conflicts, safe retries, story-linked messages, author labels, validation, logout and 200+ messages.');
 }
-main().catch(error=>{console.error(error);process.exitCode=1;});
+async function checkMailbox(){
+  const db=project();
+  const fixedOriginal={id:'shared',body:'已经定稿的第一封情书，内容完整保留',source:'edit',revision:crypto.randomUUID()};
+  db.rows('universe_letter').set('shared',structuredClone(fixedOriginal));
+  const a=await createActor(db,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','owner');
+  const b=await createActor(db,'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','partner');
+  const outsider=await createActor(db,'cccccccc-cccc-4ccc-8ccc-cccccccccccc',null);
+  const letter={id:crypto.randomUUID(),title:'给小兰的又一封信',body:'很长的话，也慢慢说给你听 ♡\n'.repeat(1000).trim()};
+  const sent=await a.sendMail(letter);
+  assert.equal(sent.author_role,'owner');assert.equal(sent.created_by,'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  const list=await b.listMailbox();
+  assert.equal(list.letters.length,1);assert.equal(list.letters[0].title,letter.title);
+  assert.ok(!Object.hasOwn(list.letters[0],'body'),'envelope listing must not fetch all letter bodies');
+  assert.equal((await b.readMailboxLetter(letter.id)).body,letter.body,'long body must arrive in full');
+  await a.sendMail(letter);assert.equal((await a.listMailbox()).letters.length,1,'uncertain retry must not create duplicate envelopes');
+  await assert.rejects(()=>b.sendMail(letter),'another member cannot reuse a sent letter ID');
+  await assert.rejects(()=>a.sendMail({...letter,body:'changed'}),'sent envelopes must not be overwritten by a changed retry');
+  assert.equal((await a.readMailboxLetter(letter.id)).body,letter.body);
+  const back=await b.sendMail({id:crypto.randomUUID(),title:'给管家的信',body:'我也有一封想写给你的信'});
+  assert.equal(back.author_role,'partner');
+  const reply={id:crypto.randomUUID(),letterKey:letter.id,body:'收到你的信了，我也想告诉你 ♡\n'.repeat(800).trim()};
+  const replyRow=await b.sendMailReply(reply);assert.equal(replyRow.author_role,'partner');
+  await b.sendMailReply(reply);
+  assert.equal((await a.listMailReplies(letter.id)).length,1);assert.equal((await a.listMailReplies(letter.id))[0].body,reply.body);
+  await a.sendMailReply({id:crypto.randomUUID(),letterKey:'original',body:'给第一封信的回音'});
+  await b.sendMailReply({id:crypto.randomUUID(),letterKey:'original',body:'我们的第一封信，也会有很多次回音'});
+  assert.equal((await a.listMailReplies('original')).length,2);
+  assert.deepEqual(db.rows('universe_letter').get('shared'),fixedOriginal,'new envelopes and replies must leave the fixed original letter untouched');
+  assert.equal((await b.listMailReplies(back.id)).length,0,'reply threads must stay separate');
+  const both=await b.listMailbox();assert.equal(both.replies.length,3);assert.ok(both.replies.every(row=>!Object.hasOwn(row,'body')));
+  for(const invalid of [{...letter,id:'bad'},{...letter,title:' '},{...letter,title:'字'.repeat(81)},{...letter,body:' '}])await assert.rejects(()=>a.sendMail(invalid));
+  for(const invalid of [{...reply,id:'bad'},{...reply,letterKey:'bad'},{...reply,body:' '}])await assert.rejects(()=>a.sendMailReply(invalid));
+  await assert.rejects(()=>a.readMailboxLetter('bad'));await assert.rejects(()=>a.listMailReplies('bad'));
+  await assert.rejects(()=>a.sendMailReply({id:crypto.randomUUID(),letterKey:crypto.randomUUID(),body:'missing parent'}));
+  for(const call of [()=>outsider.listMailbox(),()=>outsider.readMailboxLetter(letter.id),()=>outsider.sendMail(letter),()=>outsider.listMailReplies('original'),()=>outsider.sendMailReply(reply)])await assert.rejects(call);
+  const retry={id:crypto.randomUUID(),title:'网络恢复后的一封信',body:'重试也只寄出一封'};
+  db.failOnce('universe_mail_letters');await assert.rejects(()=>a.sendMail(retry));await a.sendMail(retry);await a.sendMail(retry);
+  const retryReply={id:crypto.randomUUID(),letterKey:retry.id,body:'网络恢复后的回信'};
+  db.failOnce('universe_mail_replies');await assert.rejects(()=>b.sendMailReply(retryReply));await b.sendMailReply(retryReply);await b.sendMailReply(retryReply);
+  for(let i=0;i<205;i++){
+    const id='20000000-0000-4000-8000-'+String(i).padStart(12,'0');
+    db.rows('universe_mail_letters').set(id,{id,title:'之前的信'+i,body:'旧信正文',created_by:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',author_role:'owner',created_at:new Date(1600000000000+i).toISOString()});
+    db.rows('universe_mail_replies').set(id,{id,is_original:false,letter_id:letter.id,body:'之前的回信'+i,created_by:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',author_role:'partner',created_at:new Date(1600000000000+i).toISOString()});
+  }
+  assert.equal((await a.listMailbox()).letters.length,208);
+  assert.equal((await b.listMailbox()).replies.length,209);
+  assert.equal((await a.listMailReplies(letter.id)).length,206);
+  assert.equal((await a.listMailReplies('original')).length,2);
+  await b.logout();
+  for(const call of [()=>b.listMailbox(),()=>b.readMailboxLetter(letter.id),()=>b.sendMail(letter),()=>b.listMailReplies('original'),()=>b.sendMailReply(reply)])await assert.rejects(call);
+  console.log('PASS: multi-envelope mailbox, both authors, original-letter replies, isolated threads, long bodies, immutable sends, safe retries, paging beyond 200, unauthorized access and logout.');
+}
+(async()=>{await main();await checkMailbox();})().catch(error=>{console.error(error);process.exitCode=1;});
