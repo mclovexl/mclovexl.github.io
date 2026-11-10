@@ -102,3 +102,54 @@ body.welcome-active { overflow: hidden; }
   .welcome-stars i { opacity: .5; }
   .welcome-progress { display: none; }
 }
+
+/* A birthday-only opening, kept separate from the everyday welcome. */
+.welcome-content[hidden], .welcome-date[hidden], .birthday-scene[hidden], .birthday-date[hidden] { display: none; }
+#welcome-screen.is-birthday {
+  background: radial-gradient(ellipse at 50% 43%, #51313b 0, #251b29 35%, #0e121d 78%);
+}
+.is-birthday .welcome-halo { border-color: #eebba51e; }
+.birthday-scene { position: relative; width: min(100%, 650px); padding: 0 0 25px; text-align: center; }
+.birthday-kicker { margin: 0; color: #e1b9a7; font: 10px/1.5 Arial, sans-serif; letter-spacing: 3px; opacity: 0; animation: welcome-appear 1.3s ease .15s forwards; }
+.birthday-kicker span { padding: 0 9px; color: #f4c6a6; }
+.birthday-illustration { width: min(360px, 76vw); margin: -10px auto -4px; opacity: 0; animation: birthday-float-in 1.8s ease .2s forwards; }
+.birthday-illustration svg { display: block; width: 100%; overflow: visible; }
+.birthday-ring { transform-origin: center; animation: birthday-orbit 14s ease-in-out infinite alternate; }
+.birthday-flame { transform-origin: 215px 110px; animation: birthday-flicker 1.8s ease-in-out infinite alternate; filter: drop-shadow(0 0 7px #ffc89d); }
+.birthday-sparkles { transform-origin: center; animation: welcome-sparkle 3.5s ease-in-out infinite alternate; }
+.birthday-prelude { margin: -2px 0 10px; color: #e0c3b8; font-size: 14px; letter-spacing: 3px; opacity: 0; animation: welcome-rise 1.2s ease .8s forwards; }
+#birthday-title { margin: 0; color: #fff1df; font-family: var(--serif, "SimSun", serif); font-size: clamp(32px, 5vw, 54px); font-weight: 400; line-height: 1.5; letter-spacing: 3px; opacity: 0; animation: welcome-rise 1.4s ease 1.2s forwards; }
+#birthday-title em { color: #f2bbae; font-style: normal; text-shadow: 0 0 35px #f2bbae48; }
+.birthday-wish { margin: 15px 0 0; color: #dac2b6; font-size: 13px; line-height: 1.8; letter-spacing: 2px; opacity: 0; animation: welcome-rise 1.3s ease 1.8s forwards; }
+.birthday-signature { margin: 22px 0 26px; color: #c5aaa0; font-size: 11px; letter-spacing: 3px; opacity: 0; animation: welcome-rise 1.2s ease 2.2s forwards; }
+.birthday-signature span { padding: 0 10px; color: #efb4a5; font-size: 18px; }
+.birthday-progress > span { animation-duration: 8.5s; }
+.birthday-date { position: absolute; bottom: max(34px, env(safe-area-inset-bottom)); left: 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; color: #d3b4a2; font: 12px/1.5 var(--serif, "SimSun", serif); letter-spacing: 3px; opacity: 0; animation: welcome-appear 1.2s ease 2s forwards; }
+.birthday-date span { width: 34px; height: 1px; background: linear-gradient(90deg, transparent, #c7a38d88); }
+.birthday-date span:last-child { transform: rotate(180deg); }
+@keyframes birthday-float-in { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes birthday-flicker { from { transform: scale(.94, 1.04); opacity: .8; } to { transform: scale(1.05, .96); opacity: 1; } }
+@keyframes birthday-orbit { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@media (max-width: 600px) {
+  .birthday-scene { padding-bottom: 18px; }
+  .birthday-kicker { font-size: 8px; letter-spacing: 2px; }
+  .birthday-illustration { width: min(310px, 78vw); margin: -2px auto -4px; }
+  .birthday-prelude { font-size: 12px; letter-spacing: 2px; }
+  #birthday-title { font-size: clamp(29px, 8vw, 42px); letter-spacing: 1px; }
+  .birthday-wish { font-size: 11px; letter-spacing: 1px; margin-top: 12px; }
+  .birthday-signature { margin: 18px 0 22px; }
+  .birthday-date { bottom: max(30px, env(safe-area-inset-bottom)); font-size: 11px; }
+}
+@media (max-height: 600px) {
+  .birthday-scene { padding: 0; }
+  .birthday-illustration { width: min(220px, 52vw); margin: -15px auto -15px; }
+  .birthday-kicker { font-size: 8px; }
+  .birthday-prelude { margin-bottom: 2px; }
+  #birthday-title { font-size: 29px; }
+  .birthday-wish { margin-top: 3px; }
+  .birthday-signature { margin: 6px 0 9px; }
+  .birthday-date { bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .birthday-kicker, .birthday-illustration, .birthday-prelude, #birthday-title, .birthday-wish, .birthday-signature, .birthday-date { opacity: 1; }
+}
